@@ -1,4 +1,7 @@
-# Prisoner’s Dilemma — A attempt at reproducing the findings in the official axelrod tournament and having a bit of fun along the way
+# Prisoner’s Dilemma Simulator
+This project exists to answer one question:
+
+> *Under realistic conditions (noise, exploitation, limited interaction), which forms of cooperation actually survive?*
 
 ## Overview
 
@@ -9,9 +12,6 @@ This project implements and explores **Iterated Prisoner’s Dilemma tournaments
 - Implementing noise
 - Implementing evolution over time
 - Visualizing evolution over time in the form of a graph
-
-The goal is **not** to reuse an existing framework, but to **rebuild the core mechanisms from scratch** in a controlled, extensible way, enabling clear experimentation and interpretation. In the end, we imported the official strategies used in the axelrod tournament as we don't have the time nor ressources to implement the various complex
-strategies created by various researchers in the official tournaments.
 
 ---
 
@@ -86,8 +86,6 @@ The project includes a growing set of strategies inspired by Axelrod’s tournam
 - Bullies
 - Noise-exploiting strategies
 
-The emphasis is on **behavioral archetypes**, not exhaustive reproduction of all 63 historical strategies.
-
 ---
 
 ## Noise Model
@@ -110,8 +108,6 @@ Simulations produce:
 - Cumulative scores per strategy over time
 - Rankings at each round
 
-These outputs are intentionally kept **library-agnostic** to allow flexible analysis and visualization.
-
 ---
 
 ## Visualization
@@ -121,25 +117,6 @@ The project uses:
 - **Racing bar charts** to visualize dominance shifts over time
 
 Visualization code is fully decoupled from simulation logic.
-
----
-
-## Design Philosophy
-
-- **Clarity over cleverness**
-- **Explicit mechanisms over black boxes**
-- **Reproducibility over performance**
-- **Interpretability over optimization**
-
-This is a modeling and reasoning project first, not a benchmarking exercise.
-
----
-
-## Planned Extensions
-
-- Interaction filtering (agents stop playing consistently exploitative opponents)
-- Population evolution (selection pressure over time)
-- Comparative analysis against Axelrod’s original results
 
 ---
 
@@ -180,8 +157,3 @@ Open:
 
 `http://127.0.0.1:8000`
 
-## Motivation
-
-This project exists to answer one question:
-
-> *Under realistic conditions (noise, exploitation, limited interaction), which forms of cooperation actually survive?*
