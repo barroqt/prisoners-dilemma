@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prisoner's Dilemma Simulator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f7; color: #222; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    h1, h2 { margin-top: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .controls-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .strategy-list { max-height: 220px; overflow: auto; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+    label.strategy { display: block; margin-bottom: 6px; font-size: 14px; }
+    button { padding: 10px 14px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; }
+    button:disabled { background: #8fa7dd; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #ececec; text-align: left; padding: 8px; font-size: 14px; }
+    .status { font-size: 14px; margin-top: 10px; color: #444; }
+    @media (max-width: 920px) {
+      .grid, .controls-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Prisoner's Dilemma Simulator</h1>
+
+    <section class="card">
+      <h2>Controls</h2>
+      <div class="controls-row">
+        <div>
+          <label for="rounds">Rounds</label>
+          <input id="rounds" type="number" min="1" max="5000" value="200" />
+        </div>
+        <div>
+          <label for="iterations">Iterations</label>
+          <input id="iterations" type="number" min="1" max="200" value="1" />
+        </div>
+        <div>
+          <label for="noise">Noise (0.0 - 1.0)</label>
+          <input id="noise" type="number" min="0" max="1" step="0.01" value="0" />
+        </div>
+      </div>
+      <h3>Strategies</h3>
+      <label class="strategy">
+        <input type="checkbox" id="select-all-strategies" />
+        Select all strategies
+      </label>
+      <div id="strategies" class="strategy-list"></div>
+      <button id="run-btn">Run Simulation</button>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>Results</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Strategy</th>
+            <th>Total Score</th>
+            <th>Average Score</th>
+            <th>Cooperation Rate</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard"></tbody>
+      </table>
+    </section>
+
+    <section class="card grid">
+      <div>
+        <h2>Final Scores</h2>
+        <canvas id="bar-chart"></canvas>
+      </div>
+      <div>
+        <h2>Cumulative Scores by Round</h2>
+        <canvas id="line-chart"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const strategiesEl = document.getElementById("strategies");
+    const selectAllEl = document.getElementById("select-all-strategies");
+    const runBtn = document.getElementById("run-btn");
+    const statusEl = document.getElementById("status");
+    const leaderboardEl = document.getElementById("leaderboard");
+    let barChart = null;
+    let lineChart = null;
+
+    function strategyCheckboxes() {
+      return Array.from(strategiesEl.querySelectorAll("input[type='checkbox']"));
+    }
+
+    function syncSelectAllState() {
+      const checkboxes = strategyCheckboxes();
+      selectAllEl.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
+    }
+
+    async function loadStrategies() {
+      const response = await fetch("/strategies");
+      const data = await response.json();
+      strategiesEl.innerHTML = "";
+      data.strategies.forEach((name, idx) => {
+        const id = `strategy-${idx}`;
+        const wrapper = document.createElement("label");
+        wrapper.className = "strategy";
+        wrapper.innerHTML = `<input type="checkbox" id="${id}" value="${name}" ${idx < 4 ? "checked" : ""}/> ${name}`;
+        strategiesEl.appendChild(wrapper);
+      });
+      strategyCheckboxes().forEach((checkbox) => {
+        checkbox.addEventListener("change", syncSelectAllState);
+      });
+      syncSelectAllState();
+    }
+
+    function selectedStrategies() {
+      return Array.from(strategiesEl.querySelectorAll("input[type='checkbox']:checked")).map((el) => el.value);
+    }
+
+    function setLoading(isLoading, message = "") {
+      runBtn.disabled = isLoading;
+      statusEl.textContent = message;
+    }
+
+    selectAllEl.addEventListener("change", () => {
+      strategyCheckboxes().forEach((checkbox) => {
+        checkbox.checked = selectAllEl.checked;
+      });
+    });
+
+    function renderLeaderboard(leaderboard) {
+      leaderboardEl.innerHTML = "";
+      leaderboard.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${row.strategy}</td>
+          <td>${row.total_score}</td>
+          <td>${row.average_score}</td>
+          <td>${(row.cooperation_rate * 100).toFixed(2)}%</td>
+        `;
+        leaderboardEl.appendChild(tr);
+      });
+    }
+
+    function renderBarChart(leaderboard) {
+      const labels = leaderboard.map((x) => x.strategy);
+      const scores = leaderboard.map((x) => x.total_score);
+      if (barChart) barChart.destroy();
+      barChart = new Chart(document.getElementById("bar-chart"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Total Score", data: scores }] },
+        options: { responsive: true, maintainAspectRatio: true }
+      });
+    }
+
+    function renderLineChart(cumulativeScoresByRound) {
+      const names = Object.keys(cumulativeScoresByRound);
+      const rounds = cumulativeScoresByRound[names[0]]?.length || 0;
+      const labels = Array.from({ length: rounds }, (_, i) => i + 1);
+      const datasets = names.map((name) => ({
+        label: name,
+        data: cumulativeScoresByRound[name],
+        fill: false,
+        tension: 0.1
+      }));
+      if (lineChart) lineChart.destroy();
+      lineChart = new Chart(document.getElementById("line-chart"), {
+        type: "line",
+        data: { labels, datasets },
+        options: { responsive: true, maintainAspectRatio: true }
+      });
+    }
+
+    runBtn.addEventListener("click", async () => {
+      const strategies = selectedStrategies();
+      if (!strategies.length) {
+        setLoading(false, "Select at least one strategy.");
+        return;
+      }
+
+      const payload = {
+        strategies,
+        rounds: Number(document.getElementById("rounds").value),
+        iterations: Number(document.getElementById("iterations").value),
+        noise: Number(document.getElementById("noise").value)
+      };
+
+      setLoading(true, "Running simulation...");
+      try {
+        const response = await fetch("/simulate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(JSON.stringify(errorData.detail || errorData));
+        }
+
+        const result = await response.json();
+        renderLeaderboard(result.leaderboard);
+        renderBarChart(result.leaderboard);
+        renderLineChart(result.cumulative_scores_by_round);
+        setLoading(false, "Simulation complete.");
+      } catch (error) {
+        setLoading(false, `Error: ${error.message}`);
+      }
+    });
+
+    loadStrategies().catch((error) => setLoading(false, `Error loading strategies: ${error.message}`));
+  </script>
+</body>
+</html>

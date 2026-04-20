@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pydantic
+pandas
+bar_chart_race
+axelrod

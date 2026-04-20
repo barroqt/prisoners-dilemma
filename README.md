@@ -158,6 +158,28 @@ This is a modeling and reasoning project first, not a benchmarking exercise.
 After installing all the necessary libraries, to run the code, run the command ```python -m folder_name/python_file```
 like so ```python -m visualization.data_rbc```
 
+### New CLI entrypoint
+
+Use the dedicated CLI wrapper:
+
+`python -m cli --list-strategies`
+
+`python -m cli --strategies "s01 - Always Coop" "s03 - Tit For Tat" --rounds 200 --iterations 5 --noise 0.05`
+
+### New web interface
+
+Install web dependencies:
+
+`pip install -r requirements.txt`
+
+Run API server:
+
+`uvicorn api:app --reload`
+
+Open:
+
+`http://127.0.0.1:8000`
+
 ## Motivation
 
 This project exists to answer one question:
