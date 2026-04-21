@@ -11,7 +11,7 @@ from simulation.service import available_strategies, run_simulation
 
 
 class SimulationRequest(BaseModel):
-    strategies: list[str] = Field(min_length=1, max_length=16)
+    strategies: list[str] = Field(min_length=1, max_length=41)
     rounds: int = Field(gt=0, le=5000)
     iterations: int = Field(gt=0, le=200)
     noise: float = Field(ge=0.0, le=1.0, default=0.0)

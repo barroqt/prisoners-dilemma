@@ -70,7 +70,7 @@ def load_strategy_registry(limit: int = 16) -> dict[str, StrategyFn]:
     return {display_name: fn for _, display_name, fn in by_number}
 
 
-DEFAULT_STRATEGIES = load_strategy_registry(limit=16)
+DEFAULT_STRATEGIES = load_strategy_registry(limit=41)
 
 
 def available_strategies() -> list[str]:
