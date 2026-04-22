@@ -90,6 +90,32 @@ _INTRO_OVERRIDES: dict[str, str] = {
     "Prober": "Opens with a test to find weakness.",
 }
 
+_DESCRIPTION_OVERRIDES: dict[str, str] = {
+    "Appold": "Starts friendly, then adapts based on how you react to cooperation and defection.",
+    "Black": "Begins nice, then becomes less trusting when recent defections pile up.",
+    "Borufsen": "Mostly mirrors you, but watches for suspicious patterns and can turn cold.",
+    "Cave": "Starts kind, but may harden if you defect too often or seem chaotic.",
+    "Champion": "Friendly at first, then tests whether you deserve long-term trust.",
+    "Colbert": "Mostly cooperative, but answers betrayal with a fixed punishment sequence.",
+    "Eatherley": "Cooperates freely, but retaliates more as your defection history grows.",
+    "Getzler": "Remembers past betrayals, with recent ones hurting trust the most.",
+    "Gladstein": "Opens with a test, then exploits the soft-hearted or falls back to mirroring.",
+    "Graaskamp Katzen": "Plays cautiously and defects forever if its score falls too low.",
+    "Grofman": "Starts nice, then uses a short memory window to judge your behavior.",
+    "Harrington": "A tricky pattern-reader that probes, watches streaks, and changes modes.",
+    "Kluepfel": "Looks for patterns in your responses and adjusts with a mix of logic and chance.",
+    "Leyvraz": "A harsh strategy that quickly leans into defection when trust looks weak.",
+    "Mikkelson": "Usually cooperative, but reacts sharply when it feels repeatedly betrayed.",
+    "Richard Hufford": "A thoughtful cooperator that studies your habits before deciding how forgiving to be.",
+    "Rowsam": "Starts nice, tracks your behavior closely, and punishes when defection becomes a trend.",
+    "Tideman Chieruzzi": "Escalates punishment over time, but may offer a rare fresh start.",
+    "Tranquilizer": "Tries to stay calm and profitable, sneaking in defections when the moment looks safe.",
+    "Weiner": "A mostly mirroring strategy with occasional forgiveness and a limit to its patience.",
+    "White": "Simple and nice early on, but less forgiving once defection becomes common.",
+    "Wm Adams": "Stays cooperative for a while, then uses timed punishments as defections add up.",
+    "Yamachi": "A strategic cooperator that watches for repeated patterns before turning against you.",
+}
+
 
 def _stem_suffix(path_stem: str) -> str:
     # s03_tit_for_tat -> tit_for_tat
@@ -130,7 +156,7 @@ def available_strategies_meta() -> list[StrategyInfo]:
         category_short = _CATEGORY_SHORT.get(category, "Complex")
 
         doc = (function_object.__doc__ or "").strip()
-        description = doc or "A unique approach to cooperation and betrayal."
+        description = _DESCRIPTION_OVERRIDES.get(label, doc or "A unique approach to cooperation and betrayal.")
         intro = _INTRO_OVERRIDES.get(label, _first_sentence(description))
 
         infos.append(
