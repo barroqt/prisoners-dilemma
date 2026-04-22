@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from simulation.service import available_strategies, run_simulation
+from simulation.service import available_strategies, available_strategies_meta, run_simulation
 
 
 class SimulationRequest(BaseModel):
@@ -30,6 +30,11 @@ def index() -> FileResponse:
 @app.get("/strategies")
 def get_strategies() -> dict[str, list[str]]:
     return {"strategies": available_strategies()}
+
+
+@app.get("/strategies/meta")
+def get_strategies_meta() -> dict[str, list[dict]]:
+    return {"strategies": [s.__dict__ for s in available_strategies_meta()]}
 
 
 @app.post("/simulate")

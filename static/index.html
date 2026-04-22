@@ -4,23 +4,243 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prisoner's Dilemma Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f7; color: #222; }
-    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-    .card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    :root{
+      --bg: #121417;
+      --surface: #181c20;
+      --surface-2: #20262c;
+      --surface-3: #242b33;
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.68);
+      --border: rgba(255,255,255,0.14);
+      --accent: #d2b36d;
+      --accent-soft: rgba(210,179,109,0.25);
+      --selected: #61b98e;
+      --space-1: 8px;
+      --space-2: 12px;
+      --space-3: 16px;
+      --space-4: 24px;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container { max-width: 1160px; margin: var(--space-4) auto; padding: 0 var(--space-3); }
+    h1{
+      font-family: "Barlow Condensed", "Inter", sans-serif;
+      letter-spacing: 0.4px;
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: var(--space-3);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
     h1, h2 { margin-top: 0; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .controls-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .strategy-list { max-height: 220px; overflow: auto; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
-    label.strategy { display: block; margin-bottom: 6px; font-size: 14px; }
-    button { padding: 10px 14px; border: none; border-radius: 6px; background: #2563eb; color: white; cursor: pointer; }
-    button:disabled { background: #8fa7dd; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: var(--space-2); }
+    .controls-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+
+    input[type="number"]{
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      outline: none;
+    }
+    input[type="number"]:focus{
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-3);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover{ border-color: rgba(255,255,255,0.28); background: #2b333c; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.1); }
+
     table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #ececec; text-align: left; padding: 8px; font-size: 14px; }
-    .status { font-size: 14px; margin-top: 10px; color: #444; }
+    th, td { border-bottom: 1px solid rgba(255,255,255,0.10); text-align: left; padding: 8px; font-size: 14px; }
+    th { color: rgba(255,255,255,0.78); font-weight: 700; }
+    .status { font-size: 14px; margin-top: 10px; color: var(--muted); }
+    canvas{ display:block; max-width: 100%; }
+    #bar-chart, #line-chart{ max-height: 360px; }
+
+    /* Strategy select (fighting game character select vibe) */
+    .select-header{ display:flex; align-items:flex-end; justify-content:space-between; gap: var(--space-2); flex-wrap: wrap; }
+    .select-header h2{ margin-bottom: 4px; }
+    .subtitle{ color: var(--muted); font-size: 13px; margin: 0; }
+    .select-meta{ display:flex; align-items:center; gap: var(--space-2); flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .pill strong{ color: var(--text); }
+    .checkline{ display:flex; align-items:center; gap: 10px; user-select: none; }
+    .checkline input{ width: 16px; height: 16px; }
+
+    .select-layout{
+      display:grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+    }
+
+    .roster{
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      padding: 12px;
+    }
+    .roster-grid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-1);
+    }
+
+    .strategy-card{
+      position: relative;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: #20262d;
+      cursor: pointer;
+      transition: transform 90ms ease, border-color 90ms ease, box-shadow 90ms ease, background 120ms ease;
+      outline: none;
+      min-height: 72px;
+    }
+    .strategy-card:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.24); background: #252d36; }
+    .strategy-card.is-highlighted{
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+      background: #2b333d;
+    }
+    .strategy-card.is-selected{
+      border-color: var(--selected);
+      box-shadow: 0 0 0 1px rgba(97,185,142,0.35);
+    }
+
+    .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap: 10px; }
+    .portrait{
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #2a3139;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      color: rgba(255,255,255,0.88);
+      flex: 0 0 auto;
+    }
+
+    .strategy-name{ font-weight: 900; font-size: 13px; margin: 0; line-height: 1.2; }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.86);
+      background: rgba(0,0,0,0.25);
+      white-space: nowrap;
+      flex: 0 0 auto;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tag.coop{ border-color: rgba(97,185,142,0.35); }
+    .tag.ret{ border-color: rgba(214,111,111,0.35); }
+    .tag.adapt{ border-color: rgba(109,165,204,0.35); }
+    .tag.exploit{ border-color: rgba(207,154,93,0.35); }
+    .tag.stats{ border-color: rgba(159,134,201,0.35); }
+    .tag.complex{ border-color: rgba(255,255,255,0.18); }
+
+    .hidden-checkbox{
+      position:absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .selected-mark{
+      position:absolute;
+      right: 10px;
+      bottom: 10px;
+      font-size: 11px;
+      font-weight: 900;
+      color: rgba(52,211,153,0.95);
+      opacity: 0;
+      transform: translateY(2px);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+    .strategy-card.is-selected .selected-mark{ opacity: 1; transform: translateY(0); }
+
+    .focus{
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      padding: 12px;
+      position: sticky;
+      top: 16px;
+      height: fit-content;
+    }
+    .focus-title{ display:flex; align-items:flex-start; justify-content:space-between; gap: 10px; }
+    .focus h3{ margin: 0; font-size: 16px; }
+    .focus p{ margin: 8px 0 0 0; color: var(--muted); line-height: 1.35; }
+    .focus .big-portrait{
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: #2d353d;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 950;
+      letter-spacing: 0.8px;
+      color: rgba(255,255,255,0.90);
+      flex: 0 0 auto;
+    }
+    .focus-actions{ display:flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .secondary{
+      background: var(--surface-2);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: none;
+    }
+
     @media (max-width: 920px) {
       .grid, .controls-row { grid-template-columns: 1fr; }
+      .select-layout{ grid-template-columns: 1fr; }
+      .focus{ position: relative; top: 0; }
+      .roster-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 </head>
@@ -44,14 +264,41 @@
           <input id="noise" type="number" min="0" max="1" step="0.01" value="0" />
         </div>
       </div>
-      <h3>Strategies</h3>
-      <label class="strategy">
-        <input type="checkbox" id="select-all-strategies" />
-        Select all strategies
-      </label>
-      <div id="strategies" class="strategy-list"></div>
-      <button id="run-btn">Run Simulation</button>
-      <div id="status" class="status"></div>
+
+      <div class="select-header" style="margin-top: 14px;">
+        <div>
+          <h2 style="margin: 0;">Select Your Strategies</h2>
+          <p class="subtitle">Each strategy is a different Iterated Prisoner’s Dilemma playstyle. Pick a roster, then start the match.</p>
+        </div>
+        <div class="select-meta">
+          <span class="pill"><strong id="selected-count">0</strong> selected</span>
+          <label class="pill checkline">
+            <input type="checkbox" id="select-all-strategies" />
+            Select all strategies
+          </label>
+        </div>
+      </div>
+
+      <div class="select-layout" aria-label="Strategy selection">
+        <div class="roster">
+          <div id="strategies" class="roster-grid" aria-label="Strategy roster"></div>
+        </div>
+        <aside class="focus" aria-label="Focused strategy details">
+          <div class="focus-title">
+            <div>
+              <div class="tag complex" id="focus-category">Experimental / Complex</div>
+              <h3 id="focus-name" style="margin-top: 8px;">Loading…</h3>
+            </div>
+            <div class="big-portrait" id="focus-portrait">?</div>
+          </div>
+          <p id="focus-description">Hover or click a strategy to see its details.</p>
+          <div class="focus-actions">
+            <button id="run-btn">Start Match</button>
+            <button id="clear-btn" class="secondary" type="button">Clear</button>
+          </div>
+          <div id="status" class="status"></div>
+        </aside>
+      </div>
     </section>
 
     <section class="card">
@@ -75,10 +322,6 @@
         <h2>Final Scores</h2>
         <canvas id="bar-chart"></canvas>
       </div>
-      <div>
-        <h2>Cumulative Scores by Round</h2>
-        <canvas id="line-chart"></canvas>
-      </div>
     </section>
   </div>
 
@@ -89,7 +332,37 @@
     const statusEl = document.getElementById("status");
     const leaderboardEl = document.getElementById("leaderboard");
     let barChart = null;
-    let lineChart = null;
+    const selectedCountEl = document.getElementById("selected-count");
+    const focusNameEl = document.getElementById("focus-name");
+    const focusCategoryEl = document.getElementById("focus-category");
+    const focusDescriptionEl = document.getElementById("focus-description");
+    const focusPortraitEl = document.getElementById("focus-portrait");
+    const clearBtn = document.getElementById("clear-btn");
+    let highlighted = null;
+    let strategyLabelById = {};
+
+    // Make Chart.js readable on dark UI.
+    if (window.Chart) {
+      Chart.defaults.color = "rgba(255,255,255,0.85)";
+      Chart.defaults.borderColor = "rgba(255,255,255,0.12)";
+    }
+
+    const CATEGORY_CLASS = {
+      "Cooperative / Reciprocal": "coop",
+      "Retaliatory": "ret",
+      "Adaptive": "adapt",
+      "Exploitative": "exploit",
+      "Statistical / Probabilistic": "stats",
+      "Experimental / Complex": "complex",
+    };
+
+    function initials(displayName) {
+      const parts = String(displayName).replace(/[^a-zA-Z0-9 ]/g, " ").trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return "?";
+      const first = parts[0][0] || "?";
+      const last = (parts.length > 1 ? parts[parts.length - 1][0] : "") || "";
+      return (first + last).toUpperCase();
+    }
 
     function strategyCheckboxes() {
       return Array.from(strategiesEl.querySelectorAll("input[type='checkbox']"));
@@ -100,21 +373,93 @@
       selectAllEl.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
     }
 
+    function updateSelectedCount() {
+      selectedCountEl.textContent = String(selectedStrategies().length);
+    }
+
+    function setFocus(strategy) {
+      highlighted = strategy.id;
+      focusNameEl.textContent = strategy.short_name;
+      focusCategoryEl.textContent = strategy.category;
+      focusCategoryEl.className = `tag ${CATEGORY_CLASS[strategy.category] || "complex"}`;
+      const intro = (strategy.intro || "").trim();
+      const desc = (strategy.description || "").trim();
+      if (intro && desc && intro !== desc) {
+        focusDescriptionEl.textContent = `${intro} ${desc}`;
+      } else {
+        focusDescriptionEl.textContent = intro || desc;
+      }
+      focusPortraitEl.textContent = initials(strategy.short_name);
+
+      Array.from(strategiesEl.querySelectorAll("[data-strategy-card]")).forEach((card) => {
+        const isThis = card.getAttribute("data-strategy-id") === strategy.id;
+        card.classList.toggle("is-highlighted", isThis);
+      });
+    }
+
     async function loadStrategies() {
-      const response = await fetch("/strategies");
+      const response = await fetch("/strategies/meta");
       const data = await response.json();
       strategiesEl.innerHTML = "";
-      data.strategies.forEach((name, idx) => {
+      strategyLabelById = {};
+      data.strategies.forEach((strategy, idx) => {
+        strategyLabelById[strategy.id] = strategy.short_name;
         const id = `strategy-${idx}`;
-        const wrapper = document.createElement("label");
-        wrapper.className = "strategy";
-        wrapper.innerHTML = `<input type="checkbox" id="${id}" value="${name}" ${idx < 4 ? "checked" : ""}/> ${name}`;
-        strategiesEl.appendChild(wrapper);
-      });
-      strategyCheckboxes().forEach((checkbox) => {
-        checkbox.addEventListener("change", syncSelectAllState);
+        const categoryClass = CATEGORY_CLASS[strategy.category] || "complex";
+
+        const card = document.createElement("div");
+        card.setAttribute("data-strategy-card", "true");
+        card.setAttribute("data-strategy-id", strategy.id);
+        card.setAttribute("tabindex", "0");
+        card.className = "strategy-card";
+
+        card.innerHTML = `
+          <input class="hidden-checkbox" type="checkbox" id="${id}" value="${strategy.id}" ${idx < 4 ? "checked" : ""}/>
+          <div class="card-top">
+            <div style="display:flex; gap: 10px; min-width: 0;">
+              <div class="portrait" aria-hidden="true">${initials(strategy.short_name)}</div>
+              <div style="min-width:0;">
+                <div class="tag ${categoryClass}" title="${strategy.category}">${strategy.category_short}</div>
+                <p class="strategy-name" title="${strategy.short_name}" style="margin-top: 6px;">${strategy.short_name}</p>
+              </div>
+            </div>
+          </div>
+          <div class="selected-mark">SELECTED</div>
+        `;
+
+        const checkbox = card.querySelector("input[type='checkbox']");
+
+        function syncCardSelected() {
+          card.classList.toggle("is-selected", checkbox.checked);
+        }
+
+        card.addEventListener("mouseenter", () => setFocus(strategy));
+        card.addEventListener("focus", () => setFocus(strategy));
+        card.addEventListener("click", (e) => {
+          if (e.target && e.target.tagName === "INPUT") return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+
+        checkbox.addEventListener("change", () => {
+          syncCardSelected();
+          syncSelectAllState();
+          updateSelectedCount();
+        });
+
+        syncCardSelected();
+        strategiesEl.appendChild(card);
       });
       syncSelectAllState();
+      updateSelectedCount();
+      if (data.strategies.length) setFocus(data.strategies[0]);
     }
 
     function selectedStrategies() {
@@ -127,18 +472,30 @@
     }
 
     selectAllEl.addEventListener("change", () => {
+      const targetState = selectAllEl.checked;
       strategyCheckboxes().forEach((checkbox) => {
-        checkbox.checked = selectAllEl.checked;
+        checkbox.checked = targetState;
+        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
       });
+    });
+
+    clearBtn.addEventListener("click", () => {
+      selectAllEl.checked = false;
+      strategyCheckboxes().forEach((checkbox) => {
+        checkbox.checked = false;
+        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      setLoading(false, "");
     });
 
     function renderLeaderboard(leaderboard) {
       leaderboardEl.innerHTML = "";
       leaderboard.forEach((row, index) => {
         const tr = document.createElement("tr");
+        const displayName = strategyLabelById[row.strategy] || row.strategy;
         tr.innerHTML = `
           <td>${index + 1}</td>
-          <td>${row.strategy}</td>
+          <td>${displayName}</td>
           <td>${row.total_score}</td>
           <td>${row.average_score}</td>
           <td>${(row.cooperation_rate * 100).toFixed(2)}%</td>
@@ -148,30 +505,12 @@
     }
 
     function renderBarChart(leaderboard) {
-      const labels = leaderboard.map((x) => x.strategy);
+      const labels = leaderboard.map((x) => strategyLabelById[x.strategy] || x.strategy);
       const scores = leaderboard.map((x) => x.total_score);
       if (barChart) barChart.destroy();
       barChart = new Chart(document.getElementById("bar-chart"), {
         type: "bar",
         data: { labels, datasets: [{ label: "Total Score", data: scores }] },
-        options: { responsive: true, maintainAspectRatio: true }
-      });
-    }
-
-    function renderLineChart(cumulativeScoresByRound) {
-      const names = Object.keys(cumulativeScoresByRound);
-      const rounds = cumulativeScoresByRound[names[0]]?.length || 0;
-      const labels = Array.from({ length: rounds }, (_, i) => i + 1);
-      const datasets = names.map((name) => ({
-        label: name,
-        data: cumulativeScoresByRound[name],
-        fill: false,
-        tension: 0.1
-      }));
-      if (lineChart) lineChart.destroy();
-      lineChart = new Chart(document.getElementById("line-chart"), {
-        type: "line",
-        data: { labels, datasets },
         options: { responsive: true, maintainAspectRatio: true }
       });
     }
@@ -206,7 +545,6 @@
         const result = await response.json();
         renderLeaderboard(result.leaderboard);
         renderBarChart(result.leaderboard);
-        renderLineChart(result.cumulative_scores_by_round);
         setLoading(false, "Simulation complete.");
       } catch (error) {
         setLoading(false, `Error: ${error.message}`);
