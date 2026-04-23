@@ -552,8 +552,35 @@
       if (barChart) barChart.destroy();
       barChart = new Chart(document.getElementById("bar-chart"), {
         type: "bar",
-        data: { labels, datasets: [{ label: "Total Score", data: scores }] },
-        options: { responsive: true, maintainAspectRatio: true }
+        data: {
+          labels,
+          datasets: [{
+            label: "Total Score",
+            data: scores,
+            backgroundColor: "#c96f1a",
+            borderColor: "#c96f1a",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              labels: { color: "#f3f1eb" }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#b7b0a3" },
+              grid: { color: "rgba(255,255,255,0.12)" }
+            },
+            y: {
+              ticks: { color: "#b7b0a3" },
+              grid: { color: "rgba(255,255,255,0.12)" }
+            }
+          }
+        }
       });
     }
 
