@@ -1,3 +1,3 @@
-from simulation.service import SimulationResult, available_strategies, run_simulation
+from simulation.service import available_strategies, run_simulation
 
-__all__ = ["SimulationResult", "available_strategies", "run_simulation"]
+__all__ = ["available_strategies", "run_simulation"]

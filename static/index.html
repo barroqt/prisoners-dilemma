@@ -3,624 +3,284 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prisoner's Dilemma Simulator</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root{
-      --bg: #121212;
-      --surface: #1b1b1d;
-      --surface-2: #242428;
-      --panel: #2d2f34;
-      --border: rgba(255,255,255,0.12);
-      --text: #f3f1eb;
-      --text-muted: #b7b0a3;
-      --text-faint: #8a857b;
-
-      --accent-primary: #c96f1a;
-      --accent-primary-hover: #dd8330;
-      --accent-primary-active: #a75810;
-      --accent-p1: #2f7f79;
-      --accent-p2: #a33a3a;
-      --accent-neutral: #d3b36a;
-
-      --success: #5d8f3b;
-      --warning: #b57a22;
-      --danger: #b04a4a;
-
-      --space-1: 8px;
-      --space-2: 12px;
-      --space-3: 16px;
-      --space-4: 24px;
-      --radius: 12px;
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root{
-        --bg: #f4f1ea;
-        --surface: #fbf8f2;
-        --surface-2: #f0ebe2;
-        --panel: #e7e0d4;
-        --border: rgba(33,28,21,0.12);
-        --text: #211c15;
-        --text-muted: #6e675d;
-        --text-faint: #90887b;
-      }
-    }
-
-    body {
-      font-family: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-    }
-
-    .container { max-width: 1160px; margin: var(--space-4) auto; padding: 0 var(--space-3); }
-    h1{
-      font-family: "Barlow Condensed", "Inter", sans-serif;
-      letter-spacing: 0.4px;
-      font-size: 42px;
-      font-weight: 700;
-      margin-bottom: var(--space-3);
-    }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-3);
-      margin-bottom: var(--space-3);
-    }
-    h1, h2 { margin-top: 0; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: var(--space-2); }
-    .controls-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
-
-    input[type="number"]{
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--surface-2);
-      color: var(--text);
-      outline: none;
-    }
-    input[type="number"]:focus{
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    button {
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--surface-2);
-      color: var(--text);
-      cursor: pointer;
-      font-weight: 600;
-    }
-    button:hover{ border-color: rgba(255,255,255,0.28); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.1); }
-    #run-btn{
-      background: var(--accent-primary);
-      border-color: var(--accent-primary);
-      color: #fff;
-      box-shadow: 0 2px 0 rgba(0,0,0,0.2);
-    }
-    #run-btn:hover{
-      background: var(--accent-primary-hover);
-      border-color: var(--accent-primary-hover);
-    }
-    #run-btn:active{
-      background: var(--accent-primary-active);
-      border-color: var(--accent-primary-active);
-    }
-
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid rgba(255,255,255,0.10); text-align: left; padding: 8px; font-size: 14px; }
-    th { color: rgba(255,255,255,0.78); font-weight: 700; }
-    .status { font-size: 14px; margin-top: 10px; color: var(--text-muted); }
-    canvas{ display:block; max-width: 100%; }
-    #bar-chart, #line-chart{ max-height: 360px; }
-
-    /* Strategy select (fighting game character select vibe) */
-    .select-header{ display:flex; align-items:flex-end; justify-content:space-between; gap: var(--space-2); flex-wrap: wrap; }
-    .select-header h2{ margin-bottom: 4px; }
-    .subtitle{ color: var(--text-muted); font-size: 13px; margin: 0; }
-    .select-meta{ display:flex; align-items:center; gap: var(--space-2); flex-wrap: wrap; color: var(--text-muted); font-size: 13px; }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-    }
-    .pill strong{ color: var(--text); }
-    .checkline{ display:flex; align-items:center; gap: 10px; user-select: none; }
-    .checkline input{ width: 16px; height: 16px; }
-
-    .select-layout{
-      display:grid;
-      grid-template-columns: 1.35fr 0.65fr;
-      gap: var(--space-2);
-      margin-top: var(--space-2);
-    }
-
-    .roster{
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--panel);
-      padding: 12px;
-    }
-    .roster-grid{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: var(--space-1);
-    }
-
-    .strategy-card{
-      position: relative;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: var(--surface-2);
-      cursor: pointer;
-      transition: transform 90ms ease, border-color 90ms ease, box-shadow 90ms ease, background 120ms ease;
-      outline: none;
-      min-height: 72px;
-    }
-    .strategy-card:hover{
-      transform: translateY(-1px);
-      border-color: rgba(255,255,255,0.24);
-      background: var(--panel);
-    }
-    .strategy-card.is-highlighted{
-      border-color: var(--accent-neutral);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.24);
-      background: var(--panel);
-    }
-    .strategy-card.is-selected{
-      border-color: var(--accent-primary);
-      background: color-mix(in srgb, var(--surface-2) 84%, var(--accent-primary) 16%);
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 58%, transparent);
-    }
-
-    .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap: 10px; }
-    .portrait{
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: var(--panel);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight: 900;
-      letter-spacing: 0.6px;
-      color: rgba(255,255,255,0.88);
-      flex: 0 0 auto;
-    }
-
-    .strategy-name{ font-weight: 900; font-size: 13px; margin: 0; line-height: 1.2; }
-    .tag{
-      display:inline-flex;
-      align-items:center;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      border: 1px solid rgba(255,255,255,0.14);
-      color: rgba(255,255,255,0.86);
-      background: rgba(0,0,0,0.12);
-      white-space: nowrap;
-      flex: 0 0 auto;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .tag.coop{ border-color: color-mix(in srgb, var(--accent-p1) 55%, transparent); }
-    .tag.ret{ border-color: color-mix(in srgb, var(--accent-p2) 55%, transparent); }
-    .tag.adapt{ border-color: color-mix(in srgb, var(--accent-p1) 35%, var(--accent-neutral) 25%); }
-    .tag.exploit{ border-color: color-mix(in srgb, var(--warning) 65%, transparent); }
-    .tag.stats{ border-color: color-mix(in srgb, var(--accent-neutral) 70%, transparent); }
-    .tag.complex{ border-color: rgba(255,255,255,0.18); }
-
-    .hidden-checkbox{
-      position:absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-    .selected-mark{
-      position:absolute;
-      right: 10px;
-      bottom: 10px;
-      font-size: 11px;
-      font-weight: 900;
-      color: var(--accent-primary-hover);
-      opacity: 0;
-      transform: translateY(2px);
-      transition: opacity 120ms ease, transform 120ms ease;
-    }
-    .strategy-card.is-selected .selected-mark{ opacity: 1; transform: translateY(0); }
-
-    .focus{
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--panel);
-      padding: 12px;
-      position: sticky;
-      top: 16px;
-      height: fit-content;
-    }
-    .focus-title{ display:flex; align-items:flex-start; justify-content:space-between; gap: 10px; }
-    .focus h3{ margin: 0; font-size: 16px; }
-    .focus p{ margin: 8px 0 0 0; color: var(--muted); line-height: 1.35; }
-    .focus .big-portrait{
-      width: 64px;
-      height: 64px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: var(--surface-2);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight: 950;
-      letter-spacing: 0.8px;
-      color: rgba(255,255,255,0.90);
-      flex: 0 0 auto;
-    }
-    .focus-actions{ display:flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    .secondary{
-      background: var(--surface-2);
-      border: 1px solid rgba(255,255,255,0.14);
-      box-shadow: none;
-    }
-
-    @media (max-width: 920px) {
-      .grid, .controls-row { grid-template-columns: 1fr; }
-      .select-layout{ grid-template-columns: 1fr; }
-      .focus{ position: relative; top: 0; }
-      .roster-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-  </style>
+  <title>Prisoner's Arena</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>Prisoner's Dilemma Simulator</h1>
+  <header class="topbar">
+    <div class="brand">PRISONER'S <span class="accent">ARENA</span></div>
+    <nav class="tabs" id="tabs">
+      <button class="tab-btn active" data-view="arena">Arena</button>
+      <button class="tab-btn" data-view="dashboard">Dashboard</button>
+      <button class="tab-btn" data-view="replay">Replay</button>
+      <button class="tab-btn" data-view="encyclopedia">Encyclopedia</button>
+      <button class="tab-btn" data-view="builder">Builder</button>
+      <button class="tab-btn" data-view="marketplace">Marketplace</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="session-hint" id="session-hint" data-tip="Your strategies are saved to this browser under an anonymous ID. No account needed.">anonymous session</div>
+  </header>
 
-    <section class="card">
-      <h2>Controls</h2>
-      <div class="controls-row">
-        <div>
-          <label for="rounds">Rounds</label>
-          <input id="rounds" type="number" min="1" max="5000" value="200" />
-        </div>
-        <div>
-          <label for="iterations">Iterations</label>
-          <input id="iterations" type="number" min="1" max="200" value="1" />
-        </div>
-        <div>
-          <label for="noise">Noise (0.0 - 1.0)</label>
-          <input id="noise" type="number" min="0" max="1" step="0.01" value="0" />
-        </div>
-      </div>
+  <main class="wrap">
 
-      <div class="select-header" style="margin-top: 14px;">
-        <div>
-          <h2 style="margin: 0;">Select Your Strategies</h2>
-          <p class="subtitle">Each strategy is a different Iterated Prisoner’s Dilemma playstyle. Pick a roster, then start the match.</p>
-        </div>
-        <div class="select-meta">
-          <span class="pill"><strong id="selected-count">0</strong> selected</span>
-          <label class="pill checkline">
-            <input type="checkbox" id="select-all-strategies" />
-            Select all strategies
-          </label>
-        </div>
-      </div>
-
-      <div class="select-layout" aria-label="Strategy selection">
-        <div class="roster">
-          <div id="strategies" class="roster-grid" aria-label="Strategy roster"></div>
-        </div>
-        <aside class="focus" aria-label="Focused strategy details">
-          <div class="focus-title">
-            <div>
-              <div class="tag complex" id="focus-category">Experimental / Complex</div>
-              <h3 id="focus-name" style="margin-top: 8px;">Loading…</h3>
-            </div>
-            <div class="big-portrait" id="focus-portrait">?</div>
+    <!-- ============ ARENA (setup) ============ -->
+    <section class="view active" id="view-arena">
+      <div class="card">
+        <h2>Fight Setup</h2>
+        <p class="sub">Pick two strategies for a detailed 1v1, or more for a free-for-all round-robin. Everything is computed up front, then replayed.</p>
+        <div class="controls-row">
+          <div>
+            <label for="in-rounds" data-tip="How many times the two strategies play against each other in one match.">Rounds per match</label>
+            <input id="in-rounds" type="number" min="10" max="5000" value="200" style="width:100%" />
           </div>
-          <p id="focus-description">Hover or click a strategy to see its details.</p>
-          <div class="focus-actions">
-            <button id="run-btn">Start Match</button>
-            <button id="clear-btn" class="secondary" type="button">Clear</button>
+          <div>
+            <label for="in-iterations" data-tip="How many times the whole tournament is repeated. More iterations smooth out luck from random strategies and noise.">Iterations</label>
+            <input id="in-iterations" type="number" min="1" max="200" value="1" style="width:100%" />
           </div>
-          <div id="status" class="status"></div>
-        </aside>
+          <div>
+            <label for="in-noise" data-tip="Chance (0 to 1) that a move gets flipped by mistake — like a misunderstanding between the players. Try 0.05.">Noise</label>
+            <input id="in-noise" type="number" min="0" max="1" step="0.01" value="0" style="width:100%" />
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button class="primary" id="btn-run" style="width:100%">RUN TOURNAMENT</button>
+          </div>
+        </div>
+        <div class="progress-wrap" id="run-progress">
+          <div class="progress-track"><div class="progress-fill" id="run-progress-fill"></div></div>
+          <div class="progress-label" id="run-progress-label">Precomputing tournament…</div>
+        </div>
+        <div class="status-line" id="run-status"></div>
+      </div>
+
+      <div class="card">
+        <div class="roster-head">
+          <h2 style="margin:0">Choose Your Fighters</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="tag" id="selected-count">0 selected</span>
+            <button class="small" id="btn-select-classics">Classic 8</button>
+            <button class="small" id="btn-select-all">All</button>
+            <button class="small ghost" id="btn-select-none">Clear</button>
+          </div>
+        </div>
+        <div class="roster-grid" id="roster"></div>
+        <div class="roster-head" id="my-roster-head" style="display:none"><h2 style="margin:0">My Strategies</h2></div>
+        <div class="roster-grid" id="my-roster"></div>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Results</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Strategy</th>
-            <th>Total Score</th>
-            <th>Average Score</th>
-            <th>Cooperation Rate</th>
-          </tr>
-        </thead>
-        <tbody id="leaderboard"></tbody>
-      </table>
-    </section>
+    <!-- ============ DASHBOARD ============ -->
+    <section class="view" id="view-dashboard">
+      <div id="dash-empty" class="card"><div class="empty-note">No tournament yet — set up a fight in the Arena tab.</div></div>
+      <div id="dash-content" style="display:none">
+        <div class="tiles" id="dash-tiles"></div>
 
-    <section class="card grid">
-      <div>
-        <h2>Final Scores</h2>
-        <canvas id="bar-chart"></canvas>
+        <div class="card">
+          <h2>Ranking Board</h2>
+          <p class="sub">Click any column to sort. Hover a header for what the stat means. Click a row to spotlight that strategy in the charts.</p>
+          <div class="table-scroll"><table id="rank-table"></table></div>
+        </div>
+
+        <div class="row">
+          <div class="card">
+            <h2 data-tip="Share of all moves that were cooperation, round by round, across every match. Dips mean betrayal is spreading.">Cooperation Over Time</h2>
+            <div class="chart-box"><canvas id="coop-chart"></canvas></div>
+            <div class="chart-note" id="coop-note"></div>
+          </div>
+          <div class="card">
+            <h2 data-tip="Total points accumulated by each strategy as rounds progress, summed over all its matches.">Score Race</h2>
+            <div class="chart-box"><canvas id="score-chart"></canvas></div>
+            <div class="chart-note" id="score-note"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="card">
+            <h2 data-tip="Average points per match that the row strategy scored against the column strategy. Darker blue = higher score. Click a cell to replay that match.">Head-to-Head Matrix</h2>
+            <div class="table-scroll"><div class="heatmap" id="heatmap"></div></div>
+            <div class="hm-scale" id="hm-scale"></div>
+          </div>
+          <div class="card">
+            <h2 data-tip="Average points per round in the early, middle and late thirds of the matches. Spot strategies that start strong but collapse late.">Phase Breakdown</h2>
+            <div id="phase-table"></div>
+          </div>
+        </div>
+
+        <div class="export-row" id="export-row"></div>
       </div>
     </section>
-  </div>
 
-  <script>
-    const strategiesEl = document.getElementById("strategies");
-    const selectAllEl = document.getElementById("select-all-strategies");
-    const runBtn = document.getElementById("run-btn");
-    const statusEl = document.getElementById("status");
-    const leaderboardEl = document.getElementById("leaderboard");
-    let barChart = null;
-    const selectedCountEl = document.getElementById("selected-count");
-    const focusNameEl = document.getElementById("focus-name");
-    const focusCategoryEl = document.getElementById("focus-category");
-    const focusDescriptionEl = document.getElementById("focus-description");
-    const focusPortraitEl = document.getElementById("focus-portrait");
-    const clearBtn = document.getElementById("clear-btn");
-    let highlighted = null;
-    let strategyLabelById = {};
-
-    // Make Chart.js readable on dark UI.
-    if (window.Chart) {
-      Chart.defaults.color = "rgba(255,255,255,0.85)";
-      Chart.defaults.borderColor = "rgba(255,255,255,0.12)";
-    }
-
-    const CATEGORY_CLASS = {
-      "Cooperative / Reciprocal": "coop",
-      "Retaliatory": "ret",
-      "Adaptive": "adapt",
-      "Exploitative": "exploit",
-      "Statistical / Probabilistic": "stats",
-      "Experimental / Complex": "complex",
-    };
-
-    function initials(displayName) {
-      const parts = String(displayName).replace(/[^a-zA-Z0-9 ]/g, " ").trim().split(/\s+/).filter(Boolean);
-      if (!parts.length) return "?";
-      const first = parts[0][0] || "?";
-      const last = (parts.length > 1 ? parts[parts.length - 1][0] : "") || "";
-      return (first + last).toUpperCase();
-    }
-
-    function strategyCheckboxes() {
-      return Array.from(strategiesEl.querySelectorAll("input[type='checkbox']"));
-    }
-
-    function syncSelectAllState() {
-      const checkboxes = strategyCheckboxes();
-      selectAllEl.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
-    }
-
-    function updateSelectedCount() {
-      selectedCountEl.textContent = String(selectedStrategies().length);
-    }
-
-    function setFocus(strategy) {
-      highlighted = strategy.id;
-      focusNameEl.textContent = strategy.short_name;
-      focusCategoryEl.textContent = strategy.category;
-      focusCategoryEl.className = `tag ${CATEGORY_CLASS[strategy.category] || "complex"}`;
-      const intro = (strategy.intro || "").trim();
-      const desc = (strategy.description || "").trim();
-      if (intro && desc && intro !== desc) {
-        focusDescriptionEl.textContent = `${intro} ${desc}`;
-      } else {
-        focusDescriptionEl.textContent = intro || desc;
-      }
-      focusPortraitEl.textContent = initials(strategy.short_name);
-
-      Array.from(strategiesEl.querySelectorAll("[data-strategy-card]")).forEach((card) => {
-        const isThis = card.getAttribute("data-strategy-id") === strategy.id;
-        card.classList.toggle("is-highlighted", isThis);
-      });
-    }
-
-    async function loadStrategies() {
-      const response = await fetch("/strategies/meta");
-      const data = await response.json();
-      strategiesEl.innerHTML = "";
-      strategyLabelById = {};
-      data.strategies.forEach((strategy, idx) => {
-        strategyLabelById[strategy.id] = strategy.short_name;
-        const id = `strategy-${idx}`;
-        const categoryClass = CATEGORY_CLASS[strategy.category] || "complex";
-
-        const card = document.createElement("div");
-        card.setAttribute("data-strategy-card", "true");
-        card.setAttribute("data-strategy-id", strategy.id);
-        card.setAttribute("tabindex", "0");
-        card.className = "strategy-card";
-
-        card.innerHTML = `
-          <input class="hidden-checkbox" type="checkbox" id="${id}" value="${strategy.id}" ${idx < 4 ? "checked" : ""}/>
-          <div class="card-top">
-            <div style="display:flex; gap: 10px; min-width: 0;">
-              <div class="portrait" aria-hidden="true">${initials(strategy.short_name)}</div>
-              <div style="min-width:0;">
-                <div class="tag ${categoryClass}" title="${strategy.category}">${strategy.category_short}</div>
-                <p class="strategy-name" title="${strategy.short_name}" style="margin-top: 6px;">${strategy.short_name}</p>
-              </div>
+    <!-- ============ REPLAY ============ -->
+    <section class="view" id="view-replay">
+      <div id="replay-empty" class="card"><div class="empty-note">No tournament yet — run one from the Arena tab.</div></div>
+      <div id="replay-content" style="display:none">
+        <div class="card" id="ffa-panel">
+          <div class="roster-head">
+            <h2 style="margin:0">All Matches</h2>
+            <div class="scrubber-row" style="flex:1; max-width:520px; margin-top:0">
+              <button class="small" id="ffa-play">▶ Play all</button>
+              <input type="range" id="ffa-scrubber" min="0" value="0" />
+              <span class="round-indicator" id="ffa-round">—</span>
             </div>
           </div>
-          <div class="selected-mark">SELECTED</div>
-        `;
+          <p class="sub">Every match in the round-robin, replayed simultaneously. Click one to isolate it.</p>
+          <div class="match-grid" id="match-grid"></div>
+        </div>
 
-        const checkbox = card.querySelector("input[type='checkbox']");
+        <div class="card" id="fight-panel" style="display:none">
+          <button class="ghost small" id="btn-back-ffa">← All matches</button>
+          <div class="fight-head" style="margin-top:8px">
+            <div class="fighter">
+              <div class="f-name" id="f1-name"></div>
+              <div class="f-combo" id="f1-combo"></div>
+            </div>
+            <div style="text-align:center">
+              <div class="vs-badge">VS</div>
+              <div class="phase-chip early" id="fight-phase" style="margin-top:6px">Early</div>
+            </div>
+            <div class="fighter right">
+              <div class="f-name" id="f2-name"></div>
+              <div class="f-combo" id="f2-combo"></div>
+            </div>
+          </div>
 
-        function syncCardSelected() {
-          card.classList.toggle("is-selected", checkbox.checked);
-        }
+          <div class="health-wrap">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+              <span class="health-score" id="f1-score">0</span>
+              <span class="health-score" id="f2-score">0</span>
+            </div>
+            <div class="health-track" data-tip="Health-bar style score meter: each side's share of all points scored so far in this match.">
+              <div class="health-fill p1" id="f1-health" style="width:50%"></div>
+              <div class="health-fill p2" id="f2-health" style="width:50%"></div>
+            </div>
+          </div>
 
-        card.addEventListener("mouseenter", () => setFocus(strategy));
-        card.addEventListener("focus", () => setFocus(strategy));
-        card.addEventListener("click", (e) => {
-          if (e.target && e.target.tagName === "INPUT") return;
-          checkbox.checked = !checkbox.checked;
-          checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-        });
-        card.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            checkbox.checked = !checkbox.checked;
-            checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-          }
-        });
+          <div class="scrubber-row">
+            <button class="small" id="fight-play">▶ Play</button>
+            <select id="fight-speed" class="small">
+              <option value="120">1×</option>
+              <option value="50" selected>2×</option>
+              <option value="16">5×</option>
+            </select>
+            <input type="range" id="fight-scrubber" min="1" value="1" />
+            <span class="round-indicator" id="fight-round">Round 1</span>
+          </div>
 
-        checkbox.addEventListener("change", () => {
-          syncCardSelected();
-          syncSelectAllState();
-          updateSelectedCount();
-        });
+          <div class="strip-label" id="strip1-label"></div>
+          <div class="movestrip" id="strip1"></div>
+          <div class="strip-label" id="strip2-label"></div>
+          <div class="movestrip" id="strip2"></div>
+          <div class="chart-note">Green tick = cooperate, red = defect, white ring = move flipped by noise. Dimmed ticks haven't happened yet.</div>
 
-        syncCardSelected();
-        strategiesEl.appendChild(card);
-      });
-      syncSelectAllState();
-      updateSelectedCount();
-      if (data.strategies.length) setFocus(data.strategies[0]);
-    }
+          <div class="row" style="margin-top:14px">
+            <div class="card" style="margin-bottom:0">
+              <h2>Fight Feed</h2>
+              <div class="feed" id="fight-feed"></div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+              <h2>Match Report</h2>
+              <div class="narrative" id="fight-narrative"></div>
+              <div style="margin-top:12px" id="fight-phases"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    function selectedStrategies() {
-      return Array.from(strategiesEl.querySelectorAll("input[type='checkbox']:checked")).map((el) => el.value);
-    }
+    <!-- ============ ENCYCLOPEDIA ============ -->
+    <section class="view" id="view-encyclopedia">
+      <div class="card">
+        <h2>Strategy Encyclopedia</h2>
+        <p class="sub">Every fighter explained in plain language. Hit ▶ to watch a quick 24-round demo against Tit For Tat.</p>
+      </div>
+      <div class="ency-grid" id="ency-grid"></div>
+    </section>
 
-    function setLoading(isLoading, message = "") {
-      runBtn.disabled = isLoading;
-      statusEl.textContent = message;
-    }
+    <!-- ============ BUILDER ============ -->
+    <section class="view" id="view-builder">
+      <div class="card">
+        <h2>No-Code Strategy Builder</h2>
+        <p class="sub">Chain IF/THEN blocks — no programming needed. Rules are checked top to bottom each round; the first one that matches decides your move. Your creation compiles to real Python and fights like any built-in strategy.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <label style="margin:0; align-self:center">Start from:</label>
+          <select id="builder-template">
+            <option value="blank">Blank</option>
+            <option value="tft">Tit For Tat clone</option>
+            <option value="grim">Grim Trigger clone</option>
+            <option value="sneaky">Sneaky opportunist</option>
+            <option value="forgiving">Forgiving retaliator</option>
+          </select>
+          <button class="small" id="builder-load-template">Load</button>
+        </div>
+      </div>
 
-    selectAllEl.addEventListener("change", () => {
-      const targetState = selectAllEl.checked;
-      strategyCheckboxes().forEach((checkbox) => {
-        checkbox.checked = targetState;
-        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-    });
+      <div class="builder-layout">
+        <div>
+          <div class="card">
+            <div class="cond-row">
+              <span class="kw">FIRST MOVE</span>
+              <select id="builder-first-move">
+                <option value="cooperate">Cooperate</option>
+                <option value="defect">Defect</option>
+              </select>
+            </div>
+            <div id="builder-rules"></div>
+            <button class="small" id="builder-add-rule">+ Add rule</button>
+            <div class="then-row" style="margin-top:12px">
+              <span class="kw">OTHERWISE</span>
+              <select id="builder-default-action"></select>
+              <input id="builder-default-p" type="number" min="0" max="1" step="0.05" value="0.5" style="width:70px; display:none" />
+            </div>
+          </div>
 
-    clearBtn.addEventListener("click", () => {
-      selectAllEl.checked = false;
-      strategyCheckboxes().forEach((checkbox) => {
-        checkbox.checked = false;
-        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-      setLoading(false, "");
-    });
+          <div class="card">
+            <h2>Save</h2>
+            <div class="cond-row">
+              <input id="builder-name" placeholder="Strategy name" style="flex:1; min-width:160px" maxlength="60" />
+            </div>
+            <div class="cond-row">
+              <input id="builder-desc" placeholder="Short description (optional)" style="flex:1" maxlength="400" />
+            </div>
+            <div class="then-row">
+              <button class="primary" id="builder-save">Save strategy</button>
+              <button id="builder-test">Test in sandbox</button>
+              <span class="status-line" id="builder-status" style="margin:0"></span>
+            </div>
+          </div>
 
-    function renderLeaderboard(leaderboard) {
-      leaderboardEl.innerHTML = "";
-      leaderboard.forEach((row, index) => {
-        const tr = document.createElement("tr");
-        const displayName = strategyLabelById[row.strategy] || row.strategy;
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${displayName}</td>
-          <td>${row.total_score}</td>
-          <td>${row.average_score}</td>
-          <td>${(row.cooperation_rate * 100).toFixed(2)}%</td>
-        `;
-        leaderboardEl.appendChild(tr);
-      });
-    }
+          <div class="card mine-list">
+            <h2>My Strategies</h2>
+            <div id="mine-list"><div class="empty-note">Nothing saved yet.</div></div>
+          </div>
+        </div>
 
-    function renderBarChart(leaderboard) {
-      const labels = leaderboard.map((x) => strategyLabelById[x.strategy] || x.strategy);
-      const scores = leaderboard.map((x) => x.total_score);
-      if (barChart) barChart.destroy();
-      barChart = new Chart(document.getElementById("bar-chart"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Total Score",
-            data: scores,
-            backgroundColor: "#c96f1a",
-            borderColor: "#c96f1a",
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              labels: { color: "#f3f1eb" }
-            }
-          },
-          scales: {
-            x: {
-              ticks: { color: "#b7b0a3" },
-              grid: { color: "rgba(255,255,255,0.12)" }
-            },
-            y: {
-              ticks: { color: "#b7b0a3" },
-              grid: { color: "rgba(255,255,255,0.12)" }
-            }
-          }
-        }
-      });
-    }
+        <div>
+          <div class="card builder-out">
+            <h2>Live Preview</h2>
+            <div class="builder-error" id="builder-error" style="display:none"></div>
+            <div class="desc-lines" id="builder-desc-lines"></div>
+            <h3 style="margin-top:12px">Compiled Python</h3>
+            <pre id="builder-python">—</pre>
+          </div>
+          <div class="card sandbox-result" id="sandbox-card" style="display:none">
+            <h2>Sandbox — vs the classics</h2>
+            <div id="sandbox-results"></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    runBtn.addEventListener("click", async () => {
-      const strategies = selectedStrategies();
-      if (!strategies.length) {
-        setLoading(false, "Select at least one strategy.");
-        return;
-      }
+    <!-- ============ MARKETPLACE ============ -->
+    <section class="view" id="view-marketplace">
+      <div class="card">
+        <h2>Marketplace</h2>
+        <p class="sub">Strategies published by other players. Fork one to copy it into your workspace, then tweak it in the Builder.</p>
+      </div>
+      <div class="market-grid" id="market-grid"></div>
+    </section>
 
-      const payload = {
-        strategies,
-        rounds: Number(document.getElementById("rounds").value),
-        iterations: Number(document.getElementById("iterations").value),
-        noise: Number(document.getElementById("noise").value)
-      };
+  </main>
 
-      setLoading(true, "Running simulation...");
-      try {
-        const response = await fetch("/simulate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(JSON.stringify(errorData.detail || errorData));
-        }
-
-        const result = await response.json();
-        renderLeaderboard(result.leaderboard);
-        renderBarChart(result.leaderboard);
-        setLoading(false, "Simulation complete.");
-      } catch (error) {
-        setLoading(false, `Error: ${error.message}`);
-      }
-    });
-
-    loadStrategies().catch((error) => setLoading(false, `Error loading strategies: ${error.message}`));
-  </script>
+  <script src="/static/app.js"></script>
 </body>
 </html>
