@@ -841,14 +841,127 @@ function initBuilder() {
   refreshMine().catch(() => {});
 }
 
-$("builder-load-template").onclick = () => {
-  state.builder = structuredClone(TEMPLATES[$("builder-template").value] || TEMPLATES.blank);
+/* ---- "Start from" combobox: templates + every built-in strategy ---- */
+const TEMPLATE_ITEMS = [
+  { kind: "template", key: "blank", name: "Blank", hint: "Empty canvas" },
+  { kind: "template", key: "tft", name: "Tit For Tat clone", hint: "Mirror the opponent" },
+  { kind: "template", key: "grim", name: "Grim Trigger clone", hint: "One betrayal, no mercy" },
+  { kind: "template", key: "sneaky", name: "Sneaky opportunist", hint: "Mostly nice, random stabs" },
+  { kind: "template", key: "forgiving", name: "Forgiving retaliator", hint: "Punish streaks, forgive slips" },
+];
+
+function builderStartItems(query) {
+  const q = (query || "").trim().toLowerCase();
+  const match = (...fields) => !q || fields.some((f) => (f || "").toLowerCase().includes(q));
+  const templates = TEMPLATE_ITEMS.filter((t) => match(t.name, t.hint, "template"));
+  const strategies = state.meta
+    .filter((s) => STRATEGY_SEEDS[s.number] && match(s.short_name, s.category, s.category_short))
+    .map((s) => ({
+      kind: "strategy", number: s.number, name: s.short_name,
+      category: s.category, categoryShort: s.category_short,
+      approx: STRATEGY_SEEDS[s.number].approx,
+    }));
+  return { templates, strategies, flat: [...templates, ...strategies] };
+}
+
+function loadBuilderStart(item) {
+  if (item.kind === "template") {
+    state.builder = structuredClone(TEMPLATES[item.key] || TEMPLATES.blank);
+    $("builder-name").value = "";
+    $("builder-desc").value = "";
+  } else {
+    const seed = STRATEGY_SEEDS[item.number];
+    if (!seed) return;
+    state.builder = structuredClone(seed.def);
+    $("builder-name").value = `My ${item.name}`;
+    $("builder-desc").value = seed.approx
+      ? `Inspired by ${item.name} — a close approximation rebuilt with builder blocks.`
+      : `Faithful rebuild of ${item.name} with builder blocks.`;
+  }
   state.editingId = null;
-  $("builder-name").value = "";
-  $("builder-desc").value = "";
   renderBuilder();
   scheduleCompile();
-};
+}
+
+(function initStartCombo() {
+  const input = $("builder-start-input");
+  const list = $("builder-start-list");
+  let flat = [];
+  let active = -1;
+
+  function close() {
+    list.hidden = true;
+    input.setAttribute("aria-expanded", "false");
+    active = -1;
+  }
+
+  function renderList() {
+    const items = builderStartItems(input.value);
+    flat = items.flat;
+    active = flat.length ? 0 : -1;
+    if (!flat.length) {
+      list.innerHTML = `<div class="combo-empty">No matches — try a shorter search.</div>`;
+    } else {
+      let html = "";
+      if (items.templates.length) {
+        html += `<div class="combo-group">Templates</div>`;
+        html += items.templates.map((t) => `
+          <div class="combo-item" role="option" data-idx="${flat.indexOf(t)}">
+            <span class="combo-name">${esc(t.name)}</span>
+            <span class="combo-hint">${esc(t.hint)}</span>
+          </div>`).join("");
+      }
+      if (items.strategies.length) {
+        html += `<div class="combo-group">Built-in strategies</div>`;
+        html += items.strategies.map((s) => `
+          <div class="combo-item" role="option" data-idx="${flat.indexOf(s)}">
+            <span class="combo-name">${esc(s.name)}</span>
+            ${s.approx ? `<span class="combo-hint" title="The original uses logic beyond the builder's blocks; this starting point is a close approximation.">≈ approx</span>` : ""}
+            <span class="tag ${CATEGORY_CLASS[s.category] || "complex"}">${esc(s.categoryShort)}</span>
+          </div>`).join("");
+      }
+      list.innerHTML = html;
+    }
+    list.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    highlight();
+  }
+
+  function highlight() {
+    list.querySelectorAll(".combo-item").forEach((el) => {
+      const on = Number(el.dataset.idx) === active;
+      el.classList.toggle("active", on);
+      if (on) el.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function pick(index) {
+    const item = flat[index];
+    if (!item) return;
+    loadBuilderStart(item);
+    input.value = item.name;
+    close();
+  }
+
+  input.addEventListener("focus", renderList);
+  input.addEventListener("input", renderList);
+  input.addEventListener("keydown", (e) => {
+    if (list.hidden && (e.key === "ArrowDown" || e.key === "Enter")) { renderList(); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(active + 1, flat.length - 1); highlight(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+    else if (e.key === "Enter") { e.preventDefault(); pick(active); }
+    else if (e.key === "Escape") { close(); input.blur(); }
+  });
+  list.addEventListener("mousedown", (e) => {
+    const el = e.target.closest(".combo-item");
+    if (!el) return;
+    e.preventDefault(); // keep focus in the input
+    pick(Number(el.dataset.idx));
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#builder-start")) close();
+  });
+})();
 
 function actionSelect(action, onchange) {
   const sel = document.createElement("select");

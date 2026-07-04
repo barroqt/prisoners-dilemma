@@ -373,6 +373,30 @@ td.strong { color: var(--ink); font-weight: 650; }
 }
 
 /* ---------- Builder ---------- */
+.combo { position: relative; flex: 1 1 260px; max-width: 380px; }
+.combo input { width: 100%; padding-right: 28px; }
+.combo-caret { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); font-size: 10px; pointer-events: none; }
+.combo-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  max-height: 340px; overflow-y: auto; padding: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.combo-group {
+  padding: 8px 10px 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+.combo-item {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border-radius: 7px; cursor: pointer; font-size: 13px;
+}
+.combo-item:hover, .combo-item.active { background: var(--surface-2); }
+.combo-item .combo-name { font-weight: 600; }
+.combo-item .combo-hint { color: var(--ink-muted); font-size: 11px; margin-left: auto; }
+.combo-item .tag { margin-left: auto; flex-shrink: 0; }
+.combo-item .combo-hint + .tag { margin-left: 0; }
+.combo-empty { padding: 12px 10px; color: var(--ink-muted); font-size: 13px; }
+
 .builder-layout { display: grid; grid-template-columns: minmax(380px, 1.1fr) minmax(320px, 0.9fr); gap: 14px; align-items: start; }
 @media (max-width: 980px) { .builder-layout { grid-template-columns: 1fr; } }
 

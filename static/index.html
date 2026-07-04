@@ -202,15 +202,12 @@
         <h2>No-Code Strategy Builder</h2>
         <p class="sub">Chain IF/THEN blocks — no programming needed. Rules are checked top to bottom each round; the first one that matches decides your move. Your creation compiles to real Python and fights like any built-in strategy.</p>
         <div style="display:flex; gap:8px; flex-wrap:wrap">
-          <label style="margin:0; align-self:center">Start from:</label>
-          <select id="builder-template">
-            <option value="blank">Blank</option>
-            <option value="tft">Tit For Tat clone</option>
-            <option value="grim">Grim Trigger clone</option>
-            <option value="sneaky">Sneaky opportunist</option>
-            <option value="forgiving">Forgiving retaliator</option>
-          </select>
-          <button class="small" id="builder-load-template">Load</button>
+          <label style="margin:0; align-self:center" for="builder-start-input">Start from:</label>
+          <div class="combo" id="builder-start">
+            <input type="text" id="builder-start-input" placeholder="Search templates or any strategy…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="builder-start-list" aria-autocomplete="list">
+            <span class="combo-caret">▾</span>
+            <div class="combo-list" id="builder-start-list" role="listbox" hidden></div>
+          </div>
         </div>
       </div>
 
@@ -281,6 +278,7 @@
 
   </main>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/seeds.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>
