@@ -347,9 +347,30 @@ td.strong { color: var(--ink); font-weight: 650; }
 }
 
 /* ---------- Encyclopedia ---------- */
-.ency-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.ency-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; align-items: start; }
 .ency-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
 .ency-card .desc { color: var(--ink-2); font-size: 13px; margin: 8px 0 10px; min-height: 54px; }
+
+.ency-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.28s ease; }
+.ency-detail-inner { overflow: hidden; min-height: 0; }
+.ency-detail-inner p {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.ency-card.open .ency-detail { grid-template-rows: 1fr; }
+
+.ency-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.ency-more .chev { display: inline-block; transition: transform 0.2s ease; font-size: 10px; }
+@media (prefers-reduced-motion: reduce) {
+  .ency-detail { transition: none; }
+}
 
 /* ---------- Builder ---------- */
 .builder-layout { display: grid; grid-template-columns: minmax(380px, 1.1fr) minmax(320px, 0.9fr); gap: 14px; align-items: start; }

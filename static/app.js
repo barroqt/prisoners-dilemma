@@ -733,13 +733,27 @@ function renderEncyclopedia() {
         <span class="tag ${CATEGORY_CLASS[s.category] || "complex"}">${esc(s.category_short)}</span>
       </div>
       <div class="desc">${esc(s.description)}</div>
+      <div class="ency-detail" data-role="detail">
+        <div class="ency-detail-inner"><p>${esc(s.details || s.description)}</p></div>
+      </div>
       <div class="strip-label" style="display:none" data-role="demo-label"></div>
       <div class="movestrip" data-role="demo1" style="margin-bottom:2px"></div>
       <div class="movestrip" data-role="demo2"></div>
-      <button class="small" data-demo="${esc(s.id)}" style="margin-top:8px">▶ Demo vs Tit For Tat</button>
+      <div class="ency-actions">
+        <button class="small ghost ency-more" data-more aria-expanded="false">How it works <span class="chev">▾</span></button>
+        <button class="small" data-demo="${esc(s.id)}">▶ Demo vs Tit For Tat</button>
+      </div>
     </div>`).join("");
 
   $("ency-grid").addEventListener("click", async (e) => {
+    const more = e.target.closest("[data-more]");
+    if (more) {
+      const card = more.closest(".ency-card");
+      const open = card.classList.toggle("open");
+      more.setAttribute("aria-expanded", String(open));
+      more.innerHTML = open ? 'Hide details <span class="chev">▴</span>' : 'How it works <span class="chev">▾</span>';
+      return;
+    }
     const btn = e.target.closest("[data-demo]");
     if (!btn) return;
     btn.disabled = true;

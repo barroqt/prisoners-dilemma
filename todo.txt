@@ -1,3 +1,0 @@
--> might be a problem with tit for tat, never retaliated in some scenarios.
--> glitch when hovering/clicking "anonymous sessions"
--> should be able to see the code of a strat? Run a more detailed explanation?
