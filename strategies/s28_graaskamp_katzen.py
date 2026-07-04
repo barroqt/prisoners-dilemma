@@ -12,13 +12,16 @@ THRESHOLDS = {
 
 
 def s28(match_history):
+    # Cumulative score after each round, so past threshold checks stay fixed.
+    scores_by_turn = []
     score = 0
     for my, opp in match_history:
         score += payoff[(my, opp)][0]
+        scores_by_turn.append(score)
 
     # Failed threshold in the past => defect forever.
     for turn, threshold in THRESHOLDS.items():
-        if len(match_history) >= turn and score < threshold:
+        if len(match_history) >= turn and scores_by_turn[turn - 1] < threshold:
             return False
 
     if not match_history:
