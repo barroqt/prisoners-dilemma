@@ -30,6 +30,8 @@ const state = {
   replay: { matches: [], ffaRound: 0, ffaTimer: null, fight: null },
   builder: null,       // builder editor state
   editingId: null,     // custom strategy being edited
+  user: null,          // {username} when signed in; null = anonymous (the default)
+  market: { list: [], tag: null, sort: "new", query: "" },
 };
 
 const CATEGORY_CLASS = {
@@ -68,8 +70,95 @@ function ensureToken() {
 
 function updateSessionHint() {
   const token = localStorage.getItem("arena_token");
-  $("session-hint").textContent = token ? `anon-${token.slice(0, 6)}` : "anonymous session";
+  if (state.user) {
+    $("session-hint").textContent = state.user.username;
+    $("session-hint").dataset.tip = "Signed in — your strategies and votes follow this account across browsers.";
+    $("btn-auth").textContent = "Sign out";
+  } else {
+    $("session-hint").textContent = token ? `anon-${token.slice(0, 6)}` : "anonymous session";
+    $("session-hint").dataset.tip = "Your strategies are saved to this browser under an anonymous ID. No account needed.";
+    $("btn-auth").textContent = "Sign in";
+  }
 }
+
+/* ================= Optional accounts =================
+   Anonymous is the default and fully functional; signing in only links the
+   browser's anon token to an account so data follows the user across browsers. */
+let authMode = "login";
+
+function openAuth() {
+  authMode = "login";
+  syncAuthMode();
+  $("auth-status").textContent = "";
+  $("auth-username").value = "";
+  $("auth-password").value = "";
+  $("auth-modal").hidden = false;
+  $("auth-username").focus();
+}
+
+function closeAuth() { $("auth-modal").hidden = true; }
+
+function syncAuthMode() {
+  document.querySelectorAll(".auth-tab").forEach((b) => b.classList.toggle("active", b.dataset.mode === authMode));
+  $("auth-title").textContent = authMode === "login" ? "Sign in" : "Create account";
+  $("auth-submit").textContent = authMode === "login" ? "Sign in" : "Create account";
+  $("auth-note").textContent = authMode === "login"
+    ? "Signing in from this browser also brings anything you built here anonymously into your account."
+    : "Your anonymous strategies and votes in this browser become part of the new account.";
+  $("auth-password").autocomplete = authMode === "login" ? "current-password" : "new-password";
+}
+
+async function submitAuth() {
+  const username = $("auth-username").value.trim();
+  const password = $("auth-password").value;
+  const status = $("auth-status");
+  status.className = "status-line error";
+  if (!/^[A-Za-z0-9_\-]{3,24}$/.test(username)) { status.textContent = "Username: 3–24 letters, digits, - or _."; return; }
+  if (password.length < 6) { status.textContent = "Password must be at least 6 characters."; return; }
+  $("auth-submit").disabled = true;
+  try {
+    const user = await api("POST", authMode === "login" ? "/auth/login" : "/auth/register", { username, password }, true);
+    state.user = user;
+    closeAuth();
+    updateSessionHint();
+    await refreshMine();
+    if (document.querySelector("#view-marketplace.active")) loadMarketplace();
+  } catch (err) {
+    status.textContent = err.message;
+  } finally {
+    $("auth-submit").disabled = false;
+  }
+}
+
+async function logout() {
+  try { await api("POST", "/auth/logout", null, true); } catch (err) { console.error(err); }
+  // Drop the linked token entirely so this browser starts over as a fresh anon.
+  localStorage.removeItem("arena_token");
+  tokenPromise = null;
+  state.user = null;
+  state.mine = [];
+  updateSessionHint();
+  renderMine();
+  renderRoster();
+  if (document.querySelector("#view-marketplace.active")) loadMarketplace();
+}
+
+async function loadUser() {
+  if (!localStorage.getItem("arena_token")) return;
+  try {
+    const data = await api("GET", "/auth/me", null, true);
+    state.user = data.user;
+    updateSessionHint();
+  } catch (err) { console.error(err); }
+}
+
+$("btn-auth").onclick = () => (state.user ? logout() : openAuth());
+$("auth-close").onclick = closeAuth;
+$("auth-modal").addEventListener("click", (e) => { if (e.target === $("auth-modal")) closeAuth(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("auth-modal").hidden) closeAuth(); });
+document.querySelectorAll(".auth-tab").forEach((b) => b.addEventListener("click", () => { authMode = b.dataset.mode; syncAuthMode(); $("auth-status").textContent = ""; }));
+$("auth-password").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuth(); });
+$("auth-submit").onclick = submitAuth;
 
 function labelOf(id) {
   if (state.result && state.result.labels[id]) return state.result.labels[id];
@@ -869,6 +958,7 @@ function loadBuilderStart(item) {
     state.builder = structuredClone(TEMPLATES[item.key] || TEMPLATES.blank);
     $("builder-name").value = "";
     $("builder-desc").value = "";
+    $("builder-tags").value = "";
   } else {
     const seed = STRATEGY_SEEDS[item.number];
     if (!seed) return;
@@ -1170,7 +1260,8 @@ $("builder-save").onclick = async () => {
   if (!name) { status.textContent = "Give it a name first."; return; }
   status.textContent = "Saving…";
   try {
-    const body = { name, description: $("builder-desc").value.trim(), definition: state.builder };
+    const tags = $("builder-tags").value.split(",").map((t) => t.trim()).filter(Boolean);
+    const body = { name, description: $("builder-desc").value.trim(), definition: state.builder, tags };
     if (state.editingId) {
       await api("PUT", `/custom-strategies/${state.editingId}`, body, true);
     } else {
@@ -1197,7 +1288,9 @@ function renderMine() {
   if (!state.mine.length) { el.innerHTML = `<div class="empty-note">Nothing saved yet.</div>`; return; }
   el.innerHTML = state.mine.map((s) => `
     <div class="mine-row" data-id="${esc(s.id)}">
-      <span class="m-name">${esc(s.name)} ${s.published ? '<span class="m-pub">PUBLISHED</span>' : ""}${s.forked_from ? ` <span style="color:${MUTED};font-size:11px">fork</span>` : ""}</span>
+      <span class="m-name">${esc(s.name)} ${s.published ? '<span class="m-pub">PUBLISHED</span>' : ""}${s.forked_from ? ` <span style="color:${MUTED};font-size:11px">fork</span>` : ""}
+        ${(s.tags || []).map((t) => `<span class="ftag static">${esc(t)}</span>`).join("")}
+        ${s.published && (s.upvotes || s.downvotes) ? `<span style="color:${MUTED};font-size:11px" data-tip="Marketplace votes on this strategy.">▲${s.upvotes} ▼${s.downvotes}</span>` : ""}</span>
       <button class="small" data-act="edit">Edit</button>
       <button class="small" data-act="publish">${s.published ? "Unpublish" : "Publish"}</button>
       <button class="small danger-ghost" data-act="delete">Delete</button>
@@ -1211,6 +1304,7 @@ function renderMine() {
         state.editingId = id;
         $("builder-name").value = record.name;
         $("builder-desc").value = record.description || "";
+        $("builder-tags").value = (record.tags || []).join(", ");
         renderBuilder();
         scheduleCompile();
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1232,42 +1326,135 @@ async function loadMarketplace() {
   const grid = $("market-grid");
   grid.innerHTML = `<div class="empty-note">Loading…</div>`;
   try {
-    const data = await api("GET", "/marketplace");
-    if (!data.strategies.length) {
-      grid.innerHTML = `<div class="empty-note">Nothing published yet. Build a strategy and hit Publish to be the first.</div>`;
-      return;
-    }
-    grid.innerHTML = data.strategies.map((s) => `
-      <div class="market-card">
-        <div style="display:flex; justify-content:space-between; align-items:center">
-          <h3 style="margin:0">${esc(s.name)}</h3>
-          <span class="tag custom">by anon-${esc(s.author)}</span>
-        </div>
-        ${s.description ? `<div style="color:${INK2}; font-size:13px">${esc(s.description)}</div>` : ""}
-        <div class="desc-lines">${s.description_lines.map((line) => `<div>${esc(line)}</div>`).join("")}</div>
-        <details><summary>Compiled Python</summary><pre>${esc(s.python_source)}</pre></details>
-        <div style="display:flex; gap:8px; align-items:center">
-          <button class="small primary" data-fork="${esc(s.id)}">Fork to my workspace</button>
-          <span class="m-meta">${new Date(s.created_at * 1000).toLocaleDateString()}</span>
-        </div>
-      </div>`).join("");
-    grid.querySelectorAll("[data-fork]").forEach((btn) => btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      btn.textContent = "Forking…";
-      try {
-        await api("POST", `/marketplace/${btn.dataset.fork}/fork`, {}, true);
-        btn.textContent = "Forked ✓ — see Builder";
-        await refreshMine();
-      } catch (err) {
-        btn.textContent = err.message;
-      }
-    }));
+    // Send the token only if one already exists: browsing shouldn't mint one.
+    const data = await api("GET", "/marketplace", null, !!localStorage.getItem("arena_token"));
+    state.market.list = data.strategies;
+    renderMarketTags();
+    renderMarket();
   } catch (err) {
     grid.innerHTML = `<div class="empty-note">${esc(err.message)}</div>`;
   }
 }
 
+function filteredMarket() {
+  const { list, tag, sort, query } = state.market;
+  const q = query.trim().toLowerCase();
+  const rows = list.filter((s) =>
+    (!tag || (s.tags || []).includes(tag)) &&
+    (!q || [s.name, s.description, s.author].some((f) => (f || "").toLowerCase().includes(q))));
+  const by = {
+    new: (a, b) => b.created_at - a.created_at,
+    top: (a, b) => b.score - a.score || b.upvotes - a.upvotes || b.created_at - a.created_at,
+    downloads: (a, b) => b.fork_count - a.fork_count || b.created_at - a.created_at,
+    name: (a, b) => a.name.localeCompare(b.name),
+  };
+  return rows.sort(by[sort] || by.new);
+}
+
+function renderMarketTags() {
+  const counts = {};
+  state.market.list.forEach((s) => (s.tags || []).forEach((t) => { counts[t] = (counts[t] || 0) + 1; }));
+  const tags = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+  if (state.market.tag && !tags.includes(state.market.tag)) state.market.tag = null;
+  $("market-tags").innerHTML = tags.length ? [
+    `<button class="ftag ${state.market.tag === null ? "active" : ""}" data-tag="">all</button>`,
+    ...tags.map((t) => `<button class="ftag ${state.market.tag === t ? "active" : ""}" data-tag="${esc(t)}">${esc(t)} <span class="ftag-n">${counts[t]}</span></button>`),
+  ].join("") : "";
+}
+
+function marketCard(s) {
+  const votesDisabled = s.is_mine;
+  return `
+    <div class="market-card" data-id="${esc(s.id)}">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px">
+        <h3 style="margin:0">${esc(s.name)}</h3>
+        <span class="m-author" data-tip="${s.is_registered_author ? "Registered account" : "Anonymous publisher"}">by ${esc(s.author)}${s.is_mine ? " (you)" : ""}</span>
+      </div>
+      ${(s.tags || []).length ? `<div class="tag-row">${s.tags.map((t) => `<button class="ftag" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}
+      ${s.description ? `<div style="color:${INK2}; font-size:13px">${esc(s.description)}</div>` : ""}
+      <div class="desc-lines">${s.description_lines.map((line) => `<div>${esc(line)}</div>`).join("")}</div>
+      <details><summary>Read the code (compiled Python)</summary><pre>${esc(s.python_source)}</pre></details>
+      <div class="market-actions">
+        <div class="vote-box" ${votesDisabled ? 'data-tip="You can\'t vote on your own strategy."' : ""}>
+          <button class="vote-btn up ${s.my_vote === 1 ? "active" : ""}" data-vote="1" ${votesDisabled ? "disabled" : ""} aria-label="Upvote">▲</button>
+          <span class="vote-score ${s.score > 0 ? "pos" : s.score < 0 ? "neg" : ""}">${s.score > 0 ? "+" : ""}${s.score}</span>
+          <button class="vote-btn down ${s.my_vote === -1 ? "active" : ""}" data-vote="-1" ${votesDisabled ? "disabled" : ""} aria-label="Downvote">▼</button>
+        </div>
+        <button class="small primary" data-fork="${esc(s.id)}" data-tip="Copies this strategy into My Strategies so you can run it in the Arena or remix it in the Builder.">⤓ Download</button>
+        <span class="m-meta">${s.fork_count} download${s.fork_count === 1 ? "" : "s"} · ${new Date(s.created_at * 1000).toLocaleDateString()}</span>
+      </div>
+      <div class="status-line" data-role="card-status" style="margin:0"></div>
+    </div>`;
+}
+
+function renderMarket() {
+  const grid = $("market-grid");
+  if (!state.market.list.length) {
+    grid.innerHTML = `<div class="empty-note">Nothing published yet. Build a strategy and hit Publish to be the first.</div>`;
+    return;
+  }
+  const rows = filteredMarket();
+  grid.innerHTML = rows.length
+    ? rows.map(marketCard).join("")
+    : `<div class="empty-note">No strategies match this filter.</div>`;
+}
+
+async function castVote(card, record, value) {
+  const next = record.my_vote === value ? 0 : value; // clicking your active vote clears it
+  try {
+    const result = await api("POST", `/marketplace/${record.id}/vote`, { value: next }, true);
+    Object.assign(record, result);
+    card.outerHTML = marketCard(record);
+  } catch (err) {
+    card.querySelector('[data-role="card-status"]').textContent = err.message;
+  }
+}
+
+$("market-grid").addEventListener("click", async (e) => {
+  const card = e.target.closest(".market-card");
+  if (!card) return;
+  const record = state.market.list.find((s) => s.id === card.dataset.id);
+
+  const tagBtn = e.target.closest(".ftag[data-tag]");
+  if (tagBtn) {
+    state.market.tag = tagBtn.dataset.tag;
+    renderMarketTags();
+    renderMarket();
+    return;
+  }
+  const voteBtn = e.target.closest(".vote-btn");
+  if (voteBtn && record) { castVote(card, record, Number(voteBtn.dataset.vote)); return; }
+
+  const forkBtn = e.target.closest("[data-fork]");
+  if (forkBtn) {
+    forkBtn.disabled = true;
+    forkBtn.textContent = "Downloading…";
+    try {
+      await api("POST", `/marketplace/${forkBtn.dataset.fork}/fork`, {}, true);
+      forkBtn.textContent = "Downloaded ✓ — see My Strategies";
+      record.fork_count += 1;
+      await refreshMine();
+    } catch (err) {
+      forkBtn.disabled = false;
+      forkBtn.textContent = "⤓ Download";
+      card.querySelector('[data-role="card-status"]').textContent = err.message;
+    }
+  }
+});
+
+$("market-tags").addEventListener("click", (e) => {
+  const btn = e.target.closest(".ftag");
+  if (!btn) return;
+  state.market.tag = btn.dataset.tag || null;
+  renderMarketTags();
+  renderMarket();
+});
+
+$("market-search").addEventListener("input", (e) => { state.market.query = e.target.value; renderMarket(); });
+$("market-sort").addEventListener("change", (e) => { state.market.sort = e.target.value; renderMarket(); });
+
 /* ================= Boot ================= */
 updateSessionHint();
+loadUser();
 loadMeta().catch((err) => { $("run-status").className = "status-line error"; $("run-status").textContent = "Failed to load strategies: " + err.message; });
 initBuilder();

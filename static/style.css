@@ -437,6 +437,81 @@ td.strong { color: var(--ink); font-weight: 650; }
 .market-card .m-meta { color: var(--ink-muted); font-size: 12px; }
 .market-card details summary { cursor: pointer; color: var(--ink-muted); font-size: 12px; }
 .market-card pre { background: var(--page); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: var(--mono); font-size: 11px; overflow-x: auto; color: var(--ink-2); }
+.market-card .m-author { color: var(--ink-muted); font-size: 12px; white-space: nowrap; }
+.market-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: auto; }
+
+.market-toolbar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.market-toolbar input[type="search"] { flex: 1; min-width: 180px; }
+
+/* Tag filter chips (user-authored tags — distinct from category .tag pills) */
+.tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.ftag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.ftag:hover { border-color: rgba(255, 255, 255, 0.3); }
+.ftag.active { border-color: var(--accent); color: var(--ink); background: rgba(57, 135, 229, 0.15); }
+.ftag.static { cursor: default; font-weight: 500; color: var(--ink-muted); }
+.ftag .ftag-n { color: var(--ink-muted); font-weight: 500; }
+
+/* Votes */
+.vote-box { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 4px; background: var(--surface-2); }
+.vote-btn { background: none; border: none; color: var(--ink-muted); cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: 999px; line-height: 1; }
+.vote-btn:hover:not(:disabled) { color: var(--ink); background: var(--panel); }
+.vote-btn:disabled { cursor: default; opacity: 0.4; }
+.vote-btn.up.active { color: var(--good); }
+.vote-btn.down.active { color: var(--critical); }
+.vote-score { font-size: 13px; font-weight: 700; min-width: 26px; text-align: center; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.vote-score.pos { color: var(--good); }
+.vote-score.neg { color: var(--critical); }
+
+/* ---------- Auth modal (optional accounts) ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-backdrop[hidden] { display: none; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; }
+.modal input { width: 100%; }
+.modal-note { color: var(--ink-muted); font-size: 12px; margin: 4px 0 0; }
+.auth-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
+.auth-tab {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+  border-radius: 8px;
+  padding: 7px 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.auth-tab.active { border-color: var(--accent); color: var(--ink); background: rgba(57, 135, 229, 0.12); }
 
 /* ---------- Export footer (discreet) ---------- */
 .export-row { display: flex; gap: 14px; justify-content: flex-end; margin-top: 4px; }

@@ -10,7 +10,7 @@ This project exists to answer one question:
 - **Replay** — all matches replayed simultaneously with a global scrubber, or isolate one match: health-bar score meters, combo/streak counters, a fight-commentary feed, noise flips marked distinctly, instant jump-to-any-round scrubbing, per-phase breakdown, and an auto-generated narrative summary.
 - **Encyclopedia** — every strategy explained in plain language with a category tag and an animated demo vs Tit For Tat.
 - **Builder** — a no-code IF/THEN block editor. Rules compile to a real Python function with the same pure-function interface as the built-in strategies (safely interpreted — user input is never `exec`'d). Test instantly in a sandbox against the classics, then save.
-- **Marketplace** — publish strategies under an anonymous ID (no account needed) and fork other players' creations into your own workspace.
+- **Marketplace** — publish strategies under an anonymous ID (no account needed) and download other players' creations into your own workspace. Read each strategy's compiled Python and author description, upvote/downvote, and filter/sort by user-authored tags, rating, downloads or age. An **optional account** (username + password) keeps your strategies, downloads and votes across browsers — registering or logging in claims everything you made anonymously in the current browser; staying anonymous changes nothing.
 
 ## Quick start
 
@@ -33,7 +33,7 @@ uvicorn api:app --reload
 Prisoners_dilemma/
 ├── api.py              # FastAPI app: simulation, jobs, export, builder, marketplace
 ├── cli.py              # CLI entrypoint
-├── storage.py          # SQLite persistence for custom strategies (anonymous ownership)
+├── storage.py          # SQLite persistence: custom strategies, votes, optional accounts
 ├── builder/            # No-code rule schema validation + compiler (closed vocabulary, no exec)
 ├── core/               # Match mechanics, payoff matrix, noise-event tracking
 ├── interaction/        # Noise model
@@ -54,8 +54,10 @@ Prisoners_dilemma/
 | `GET /results/{id}/export?format=csv&dataset=rounds\|leaderboard\|matrix` | Research export (also `format=json`) |
 | `POST /builder/compile` / `POST /builder/test` | Validate + preview compiled Python / sandbox vs classics |
 | `POST /anon/session` | Get an anonymous ownership token (no account) |
-| `GET/POST/PUT/DELETE /custom-strategies` | Manage your saved strategies |
-| `GET /marketplace`, `POST /marketplace/{id}/fork` | Browse and fork published strategies |
+| `POST /auth/register` / `login` / `logout`, `GET /auth/me` | Optional accounts; register/login links the anon token and claims its data |
+| `GET/POST/PUT/DELETE /custom-strategies` | Manage your saved strategies (incl. tags) |
+| `GET /marketplace`, `POST /marketplace/{id}/fork` | Browse and download published strategies |
+| `POST /marketplace/{id}/vote` | Upvote (+1), downvote (-1) or clear (0) your vote |
 | `GET /strategies/meta`, `GET /strategies/demo?id=…` | Strategy encyclopedia data |
 
 ## CLI

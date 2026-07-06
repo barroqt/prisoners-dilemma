@@ -49,10 +49,20 @@ class SaveStrategyRequest(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     description: str = Field(default="", max_length=400)
     definition: dict
+    tags: list[str] = Field(default_factory=list, max_length=8)
 
 
 class PublishRequest(BaseModel):
     published: bool
+
+
+class AuthRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=24, pattern=r"^[A-Za-z0-9_\-]+$")
+    password: str = Field(min_length=6, max_length=128)
+
+
+class VoteRequest(BaseModel):
+    value: int = Field(ge=-1, le=1)
 
 
 app = FastAPI(title="Prisoner's Arena API")
@@ -72,6 +82,11 @@ def _require_token(token: str | None) -> str:
     if not token:
         raise HTTPException(status_code=401, detail="Missing X-Anon-Token header.")
     return token
+
+
+def _owner_key(token: str | None) -> str:
+    """Identity that owns data: the account (if the token is logged in) or the token."""
+    return storage.resolve_owner(_require_token(token))
 
 
 @app.get("/")
@@ -222,6 +237,43 @@ def anon_session() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Optional accounts. Registering/logging in links the anon token to the
+# account and claims the token's strategies + votes; staying anonymous
+# changes nothing.
+# ---------------------------------------------------------------------------
+
+@app.post("/auth/register")
+def auth_register(request: AuthRequest, x_anon_token: str | None = Header(default=None)) -> dict:
+    token = _require_token(x_anon_token)
+    try:
+        return storage.register(request.username, request.password, token)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@app.post("/auth/login")
+def auth_login(request: AuthRequest, x_anon_token: str | None = Header(default=None)) -> dict:
+    token = _require_token(x_anon_token)
+    user = storage.login(request.username, request.password, token)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Wrong username or password.")
+    return user
+
+
+@app.post("/auth/logout")
+def auth_logout(x_anon_token: str | None = Header(default=None)) -> dict:
+    storage.logout(_require_token(x_anon_token))
+    return {"logged_out": True}
+
+
+@app.get("/auth/me")
+def auth_me(x_anon_token: str | None = Header(default=None)) -> dict:
+    if not x_anon_token:
+        return {"user": None}
+    return {"user": storage.current_user(x_anon_token)}
+
+
+# ---------------------------------------------------------------------------
 # No-code strategy builder
 # ---------------------------------------------------------------------------
 
@@ -271,34 +323,37 @@ def builder_test(request: BuilderTestRequest) -> dict:
 # Custom strategy persistence + marketplace
 # ---------------------------------------------------------------------------
 
+def _validated_strategy_body(request: SaveStrategyRequest) -> tuple[dict, str, list[str]]:
+    try:
+        normalized = validate_definition(request.definition)
+        source = render_python_source(normalized)
+        tags = storage.normalize_tags(request.tags)
+    except (BuilderValidationError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return normalized, source, tags
+
+
 @app.get("/custom-strategies")
 def list_custom(x_anon_token: str | None = Header(default=None)) -> dict:
-    token = _require_token(x_anon_token)
-    return {"strategies": storage.list_owned(token)}
+    return {"strategies": storage.list_owned(_owner_key(x_anon_token))}
 
 
 @app.post("/custom-strategies")
 def save_custom(request: SaveStrategyRequest, x_anon_token: str | None = Header(default=None)) -> dict:
-    token = _require_token(x_anon_token)
-    try:
-        normalized = validate_definition(request.definition)
-        source = render_python_source(normalized)
-    except BuilderValidationError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    return storage.save_strategy(token, request.name, request.description, normalized, source)
+    owner = _owner_key(x_anon_token)
+    normalized, source, tags = _validated_strategy_body(request)
+    return storage.save_strategy(owner, request.name, request.description, normalized, source, tags)
 
 
 @app.put("/custom-strategies/{strategy_id}")
 def update_custom(
     strategy_id: str, request: SaveStrategyRequest, x_anon_token: str | None = Header(default=None)
 ) -> dict:
-    token = _require_token(x_anon_token)
-    try:
-        normalized = validate_definition(request.definition)
-        source = render_python_source(normalized)
-    except BuilderValidationError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    updated = storage.update_strategy(strategy_id, token, request.name, request.description, normalized, source)
+    owner = _owner_key(x_anon_token)
+    normalized, source, tags = _validated_strategy_body(request)
+    updated = storage.update_strategy(
+        strategy_id, owner, request.name, request.description, normalized, source, tags
+    )
     if updated is None:
         raise HTTPException(status_code=404, detail="Strategy not found or not yours.")
     return updated
@@ -306,8 +361,7 @@ def update_custom(
 
 @app.delete("/custom-strategies/{strategy_id}")
 def delete_custom(strategy_id: str, x_anon_token: str | None = Header(default=None)) -> dict:
-    token = _require_token(x_anon_token)
-    if not storage.delete_strategy(strategy_id, token):
+    if not storage.delete_strategy(strategy_id, _owner_key(x_anon_token)):
         raise HTTPException(status_code=404, detail="Strategy not found or not yours.")
     return {"deleted": strategy_id}
 
@@ -316,15 +370,16 @@ def delete_custom(strategy_id: str, x_anon_token: str | None = Header(default=No
 def publish_custom(
     strategy_id: str, request: PublishRequest, x_anon_token: str | None = Header(default=None)
 ) -> dict:
-    token = _require_token(x_anon_token)
-    if not storage.set_published(strategy_id, token, request.published):
+    if not storage.set_published(strategy_id, _owner_key(x_anon_token), request.published):
         raise HTTPException(status_code=404, detail="Strategy not found or not yours.")
     return {"id": strategy_id, "published": request.published}
 
 
 @app.get("/marketplace")
-def marketplace() -> dict:
-    strategies = storage.list_published()
+def marketplace(x_anon_token: str | None = Header(default=None)) -> dict:
+    # Token optional: with one, the response marks the viewer's own votes/strategies.
+    viewer = storage.resolve_owner(x_anon_token) if x_anon_token else ""
+    strategies = storage.list_published(viewer)
     for record in strategies:
         record["description_lines"] = describe_definition(record["definition"])
     return {"strategies": strategies}
@@ -332,8 +387,18 @@ def marketplace() -> dict:
 
 @app.post("/marketplace/{strategy_id}/fork")
 def fork(strategy_id: str, x_anon_token: str | None = Header(default=None)) -> dict:
-    token = _require_token(x_anon_token)
-    forked = storage.fork_strategy(strategy_id, token)
+    forked = storage.fork_strategy(strategy_id, _owner_key(x_anon_token))
     if forked is None:
         raise HTTPException(status_code=404, detail="Strategy not found or not published.")
     return forked
+
+
+@app.post("/marketplace/{strategy_id}/vote")
+def vote(strategy_id: str, request: VoteRequest, x_anon_token: str | None = Header(default=None)) -> dict:
+    try:
+        result = storage.set_vote(strategy_id, _owner_key(x_anon_token), request.value)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Strategy not found or not published.")
+    return result

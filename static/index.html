@@ -20,6 +20,7 @@
     </nav>
     <div class="spacer"></div>
     <div class="session-hint" id="session-hint" data-tip="Your strategies are saved to this browser under an anonymous ID. No account needed.">anonymous session</div>
+    <button class="small ghost" id="btn-auth" data-tip="Optional — an account keeps your strategies and votes across browsers.">Sign in</button>
   </header>
 
   <main class="wrap">
@@ -238,6 +239,9 @@
             <div class="cond-row">
               <input id="builder-desc" placeholder="Short description (optional)" style="flex:1" maxlength="400" />
             </div>
+            <div class="cond-row">
+              <input id="builder-tags" placeholder="Tags, comma-separated — e.g. aggressive, forgiving, meta (max 5)" style="flex:1" maxlength="120" data-tip="Tags help others filter the marketplace. Letters, digits and dashes only." />
+            </div>
             <div class="then-row">
               <button class="primary" id="builder-save">Save strategy</button>
               <button id="builder-test">Test in sandbox</button>
@@ -271,12 +275,44 @@
     <section class="view" id="view-marketplace">
       <div class="card">
         <h2>Marketplace</h2>
-        <p class="sub">Strategies published by other players. Fork one to copy it into your workspace, then tweak it in the Builder.</p>
+        <p class="sub">Strategies published by other players. Read the code, vote on what's good, and download any of them into your workspace to run in the Arena or remix in the Builder.</p>
+        <div class="market-toolbar">
+          <input id="market-search" type="search" placeholder="Search name, description or author…" />
+          <select id="market-sort" data-tip="Order of the marketplace grid.">
+            <option value="new">Newest</option>
+            <option value="top">Top rated</option>
+            <option value="downloads">Most downloaded</option>
+            <option value="name">Name A–Z</option>
+          </select>
+        </div>
+        <div class="tag-row" id="market-tags"></div>
       </div>
       <div class="market-grid" id="market-grid"></div>
     </section>
 
   </main>
+
+  <!-- ============ AUTH MODAL (optional accounts) ============ -->
+  <div class="modal-backdrop" id="auth-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div class="modal-head">
+        <h2 id="auth-title" style="margin:0">Sign in</h2>
+        <button class="small ghost" id="auth-close" aria-label="Close">✕</button>
+      </div>
+      <p class="sub">Totally optional. An account just keeps your strategies, downloads and votes across browsers — everything already works anonymously in this one.</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="login">Sign in</button>
+        <button class="auth-tab" data-mode="register">Create account</button>
+      </div>
+      <label for="auth-username">Username</label>
+      <input id="auth-username" maxlength="24" autocomplete="username" spellcheck="false" />
+      <label for="auth-password">Password</label>
+      <input id="auth-password" type="password" maxlength="128" autocomplete="current-password" />
+      <div class="status-line" id="auth-status"></div>
+      <button class="primary" id="auth-submit" style="width:100%">Sign in</button>
+      <p class="modal-note" id="auth-note">Signing in from this browser also brings anything you built here anonymously into your account.</p>
+    </div>
+  </div>
 
   <script src="/static/seeds.js"></script>
 <script src="/static/app.js"></script>
