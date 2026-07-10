@@ -5,14 +5,14 @@ This project exists to answer one question:
 
 ## What's inside
 
-- **Arena** — pick fighters (2 for a detailed 1v1, more for a free-for-all round-robin), set rounds/iterations/noise, and run. Large tournaments run as background jobs with a progress bar; everything is **precomputed server-side, then replayed** in the browser.
-- **Dashboard** — trading-terminal-style stat-fest: sortable ranking board (score, win rate, cooperation, retaliation speed, forgiveness, early/mid/late performance, volatility, robustness to noise), cooperation-over-time and score-race charts, head-to-head matrix heatmap, phase breakdown. Every stat has a plain-language tooltip. Discreet CSV/JSON export for researchers.
-- **Replay** — all matches replayed simultaneously with a global scrubber, or isolate one match: health-bar score meters, combo/streak counters, a fight-commentary feed, noise flips marked distinctly, instant jump-to-any-round scrubbing, per-phase breakdown, and an auto-generated narrative summary.
-- **Encyclopedia** — every strategy explained in plain language with a category tag and an animated demo vs Tit For Tat.
-- **Builder** — a no-code IF/THEN block editor. Rules compile to a real Python function with the same pure-function interface as the built-in strategies (safely interpreted — user input is never `exec`'d). Test instantly in a sandbox against the classics, then save.
-- **Marketplace** — publish strategies under an anonymous ID (no account needed) and download other players' creations into your own workspace. Read each strategy's compiled Python and author description, upvote/downvote, and filter/sort by user-authored tags, rating, downloads or age. An **optional account** (username + password) keeps your strategies, downloads and votes across browsers — registering or logging in claims everything you made anonymously in the current browser; staying anonymous changes nothing.
+- **Arena**: pick fighters (2 for a detailed 1v1, more for a free-for-all round-robin), set rounds/iterations/noise, and run. Large tournaments run as background jobs with a progress bar; everything is **precomputed server-side, then replayed** in the browser.
+- **Dashboard**: sortable ranking board (score, win rate, cooperation, retaliation speed, forgiveness, early/mid/late performance, volatility, robustness to noise), cooperation over time and score charts, head-to-head matrix heatmap, phase breakdown. Every stat has a plain language tooltip. CSV/JSON export available. Plenty of stats.
+- **Replay**: all matches replayed simultaneously, or isolate one match. Jump to any round and look how the match evolved over time.
+- **Encyclopedia**: every strategy explained, with a category tag and an animated demo vs Tit For Tat.
+- **Builder**: a no-code IF/THEN block editor, create your own strategy! Rules compile to a real Python function with the same interface as the built-in strategies (safely interpreted, user input is never `exec`'d). Test instantly against the classics, then save.
+- **Marketplace**: publish strategies and download other players' creations into your own workspace. Read each strategy's compiled Python and author description, upvote/downvote, and filter/sort by user-authored tags, rating, downloads or age. An **optional account** (username + password) keeps your strategies, downloads and votes across browsers.
 
-## Quick start
+## Run locally
 
 ```bash
 pip install -r requirements.txt
@@ -22,10 +22,11 @@ uvicorn api:app --reload
 
 ## Core ideas
 
-- Strategies are **pure functions**: input = match history (list of `(my_move, opp_move)` booleans), output = `True` (cooperate) or `False` (defect). Hand-coded Python strategies, builder-compiled strategies, and marketplace forks are all interchangeable in the simulation core.
-- Tournaments are **round-robin**; payoffs follow the classical matrix (3/3, 0/5, 5/0, 1/1).
+- Strategies are **pure functions**: input = match history (list of `(my_move, opp_move)` booleans), output = `True` (cooperate) or `False` (defect). Mrketplace forks are all interchangeable in the simulation core.
+- Tournaments are **round-robin**; payoffs follow the classical prisoner's dilemma matrix (3/3, 0/5, 5/0, 1/1).
 - **Noise** is a probability of a move being flipped (a misunderstanding); flips are recorded as events and surfaced in replays, charts, and exports.
-- **Precompute-then-replay**: the server computes the full dataset (per-round moves, noise events, phase splits, narratives, all metrics); the frontend only animates and slices it, which is what makes instant jump-to-round scrubbing possible.
+
+> the server computes the full dataset (per-round moves, noise events, phase splits, narratives, all metrics); the frontend only animates and slices it.
 
 ## Project structure
 
