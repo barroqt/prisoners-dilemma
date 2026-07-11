@@ -3,6 +3,8 @@ This project exists to answer one question:
 
 > *Under realistic conditions (noise, exploitation, limited interaction), which forms of cooperation actually survive?*
 
+Live: https://prisoners-arena.onrender.com/
+
 ## What's inside
 
 - **Arena**: pick fighters (2 for a detailed 1v1, more for a free-for-all round-robin), set rounds/iterations/noise, and run. Large tournaments run as background jobs with a progress bar; everything is **precomputed server-side, then replayed** in the browser.
